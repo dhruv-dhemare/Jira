@@ -20,3 +20,30 @@ API planning
 
 
 Pages Planning 
+1. Login (last pri)
+2. Signup (last pri)
+3. Overall page (projects,inventory,timetable)
+4. Project page add random stuff
+5. Inventory page
+6. Timetavble 
+
+
+
+Schema
+1. User - Google auth (name,username,email let see)
+
+2. project (name,desp,ref to board,summary, calender,Sprints,backlogs,member)
+2.1. summary - team workload (ref to the tasks) analytics of the tasks
+2.2. board - to do,in progress, done, review 
+2.3. calander - apla calender ref to the tasks dates
+2.4. Sprint - create sprint 
+2.5. backlogs - ref to the task that are not done
+2.6. Member - detial of the added 
+
+3. Announcemnets - just Announcemnets
+
+4. Inventory - list of items (you can them use them ),category, status,number,updated
+
+5. Timeline - contains a calender for the remarkable date(list of events) 
+
+6. Profile dropdown
