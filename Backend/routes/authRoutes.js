@@ -20,11 +20,7 @@ router.get(
       { expiresIn: "1d" }
     );
 
-    res.json({
-      message: "Login successful",
-      token,
-      user: req.user,
-    });
+    res.redirect(`http://localhost:5173?token=${token}`);
   }
 );
 
