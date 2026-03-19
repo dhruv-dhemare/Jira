@@ -3,7 +3,8 @@ const router = express.Router();
 const pool = require("../config/db");
 const { verifyToken } = require("../middleware/authMiddleware");
 const { isProjectMember, allowProjectRoles } = require("../middleware/projectAuth");
-
+const { getIO } = require("../config/socket");
+const { createNotification } = require("../utils/notifications");
 // Assign project master
 router.post("/assign-master", verifyToken, async (req, res) => {
   const { email, projectId } = req.body;
@@ -70,7 +71,13 @@ router.post("/assign-worker", verifyToken, async (req, res) => {
     "INSERT INTO project_members (user_id, project_id, role, assigned_by) VALUES ($1, $2, $3, $4)",
     [userId, projectId, "worker", req.user.id]
   );
-
+  await createNotification(
+    userId,
+    "You have been added to a project",
+    "PROJECT_ADDED"
+  );
+  const io = getIO();
+  io.to(`project_${projectId}`).emit("memberAdded", { userId, role: "worker", });
   res.json({ message: "Worker assigned" });
 });
 

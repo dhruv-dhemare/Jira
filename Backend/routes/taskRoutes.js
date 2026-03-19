@@ -2,8 +2,10 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 const { verifyToken } = require("../middleware/authMiddleware");
-
+const { getIO } = require("../config/socket");
 const { isProjectMember, allowProjectRoles } = require("../middleware/projectAuth");
+const { createNotification } = require("../utils/notifications");
+
 
 // Create task (manager OR master)
 router.post(
@@ -19,6 +21,36 @@ router.post(
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
       [title, description, projectId, assignedTo, req.user.id]
     );
+    
+    const io = getIO();
+    
+    // Get creator name
+    const creatorUser = await pool.query(
+      "SELECT name FROM users WHERE id=$1",
+      [req.user.id]
+    );
+    const creatorName = creatorUser.rows[0]?.name || "Unknown";
+    
+    let assignMessage = "created a task";
+    if (assignedTo) {
+      const assignedUser = await pool.query(
+        "SELECT name FROM users WHERE id=$1",
+        [assignedTo]
+      );
+      if (assignedUser.rows.length > 0) {
+        assignMessage += ` and assigned to ${assignedUser.rows[0].name}`;
+      }
+    }
+
+    await createNotification(
+      assignedTo,
+      "You have been assigned a new task",
+      "TASK_ASSIGNED"
+    );
+    io.to(`project_${projectId}`).emit("taskCreated", {
+      type: creatorName + " " + assignMessage,
+      data: task.rows[0],
+    });
 
     res.json(task.rows[0]);
   }
@@ -64,6 +96,14 @@ router.put("/:taskId", verifyToken, async (req, res) => {
     "UPDATE tasks SET status=$1 WHERE id=$2 RETURNING *",
     [status, taskId]
   );
+  await createNotification(
+    task.assigned_to,
+    "Your task status was updated",
+    "TASK_UPDATED"
+  );
+
+  const io = getIO();
+  io.to(`project_${taskData.project_id}`).emit("taskUpdated", updated.rows[0]);
 
   res.json(updated.rows[0]);
 });

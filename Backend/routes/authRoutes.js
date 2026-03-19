@@ -15,8 +15,8 @@ router.get(
   passport.authenticate("google", { session: false }),
   (req, res) => {
     const token = jwt.sign(
-      { id: req.user.id , role: req.user.role },
-      "SECRET_KEY",
+      { id: req.user.id, role: req.user.role },
+      process.env.SECRET_KEY,
       { expiresIn: "1d" }
     );
 
