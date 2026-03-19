@@ -5,7 +5,6 @@ const { verifyToken } = require("../middleware/authMiddleware");
 
 // Create project (manager only)
 router.post("/", verifyToken, async (req, res) => {
-  // Only manager can create
   if (req.user.role !== "manager") {
     return res.status(403).json({ error: "Only managers can create projects" });
   }
@@ -15,6 +14,12 @@ router.post("/", verifyToken, async (req, res) => {
   const project = await pool.query(
     "INSERT INTO projects (name, description, manager_id) VALUES ($1, $2, $3) RETURNING *",
     [name, description, req.user.id]
+  );
+
+  // 🔥 AUTO ADD MANAGER
+  await pool.query(
+    "INSERT INTO project_members (user_id, project_id, role, assigned_by) VALUES ($1, $2, $3, $4)",
+    [req.user.id, project.rows[0].id, "manager", req.user.id]
   );
 
   res.json(project.rows[0]);
