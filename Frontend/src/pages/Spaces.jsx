@@ -10,6 +10,7 @@ export default function Spaces() {
   const [spaces, setSpaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
 
   if (!localStorage.getItem("token")) {
     window.location.href = "/";
@@ -19,26 +20,31 @@ export default function Spaces() {
     handleAuthAndFetch();
   }, []);
 
-  const handleAuthAndFetch = async () => {
-    // 🔑 Extract token from URL
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
+const handleAuthAndFetch = async () => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
 
-    if (token) {
-      localStorage.setItem("token", token);
-      window.history.replaceState({}, document.title, "/spaces");
-    }
-    
+  if (token) {
+    localStorage.setItem("token", token);
+    window.history.replaceState({}, document.title, "/spaces");
+  }
 
-    try {
-      const res = await api.get("/projects");
-      setSpaces(res.data);
-    } catch (err) {
-      console.error("Failed to fetch projects", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const projectsRes = await api.get("/projects");
+    setSpaces(projectsRes.data);
+  } catch (err) {
+    console.error("Failed to fetch projects", err);
+  }
+
+  try {
+    const userRes = await api.get("/users/me");
+    setUser(userRes.data);
+  } catch (err) {
+    console.error("Failed to fetch user", err);
+  }
+
+  setLoading(false);
+};
 
   const createSpace = async () => {
   try {
@@ -79,12 +85,16 @@ export default function Spaces() {
           <div className="content-header">
             <div>
               <h2>Spaces</h2>
-              <p>Manage your robotics projects</p>
             </div>
 
-            <button className="create-btn" onClick={createSpace}>
-            + Create Space
+            {user?.role === "manager" && (
+            <button
+                className="create-btn"
+                onClick={() => navigate("/create-space")}
+            >
+                + Create Space
             </button>
+            )}
           </div>
 
           {/* 🔄 Loading */}

@@ -27,12 +27,22 @@ router.post("/", verifyToken, async (req, res) => {
 
 // Get all projects of logged-in user
 router.get("/", verifyToken, async (req, res) => {
-  const projects = await pool.query(
-    `SELECT * FROM projects WHERE manager_id=$1`,
-    [req.user.id]
-  );
+  try {
+    const projects = await pool.query(
+      `
+      SELECT DISTINCT p.*
+      FROM projects p
+      JOIN project_members pm ON p.id = pm.project_id
+      WHERE pm.user_id = $1
+      `,
+      [req.user.id]
+    );
 
-  res.json(projects.rows);
+    res.json(projects.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch projects" });
+  }
 });
 
 module.exports = router;

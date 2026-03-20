@@ -1,0 +1,93 @@
+/* Title */
+/* Card */
+.profile-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 0.6rem;
+  border: 0.0625rem solid #e5e7eb;
+  width: 40vw;
+}
+
+/* Top */
+.profile-top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.role {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+/* Divider */
+.divider {
+  height: 0.0625rem;
+  background: #e5e7eb;
+  margin: 1rem 0;
+}
+
+/* Info */
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.info-row {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Actions */
+.profile-actions {
+  margin-top: 1rem;
+  background: white;
+  border-radius: 0.6rem;
+  border: 0.0625rem solid #e5e7eb;
+  overflow: hidden;
+  width: 40vw;
+}
+
+.profile-actions div {
+  padding: 0.9rem 1rem;
+  border-bottom: 0.0625rem solid #e5e7eb;
+  cursor: pointer;
+}
+
+.profile-actions div:last-child {
+  border-bottom: none;
+}
+
+.profile-actions .logout {
+  color: #ef4444;
+}
+
+.profile-actions .logout {
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.profile-actions .logout:hover {
+  background: #fee2e2;
+}
+
+.profile-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 5vh;
+}

@@ -12,16 +12,16 @@ export default function Sidebar() {
       <h3 className="org-name">Robotics Club</h3>
 
       <ul>
-        <li className="active">
+        <li className="active" onClick={() => window.location.href = "/spaces"}>
           <LayoutDashboard size={18} /> Spaces
         </li>
-        <li>
+        <li onClick={() => window.location.href = "/inventory"}>
           <Box size={18} /> Inventory
         </li>
-        <li>
+        <li onClick={() => window.location.href = "/timeline"}>
           <Calendar size={18} /> Timeline
         </li>
-        <li>
+        <li onClick={() => window.location.href = "/profile"}>
           <User size={18} /> Profile
         </li>
 
