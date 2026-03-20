@@ -20,7 +20,7 @@ router.get(
       { expiresIn: "1d" }
     );
 
-    res.redirect(`http://localhost:5173?token=${token}`);
+    res.redirect(`http://localhost:5173/spaces?token=${token}`);
   }
 );
 

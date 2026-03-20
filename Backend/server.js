@@ -2,17 +2,25 @@ require("dotenv").config();
 
 const express = require("express");
 const http = require("http");
+const cors = require("cors"); // 🔥 ADD THIS
 const passport = require("./config/passport");
 const { initSocket } = require("./config/socket");
 
 const app = express();
 const server = http.createServer(app);
 
-
-const io = initSocket(server);
+// 🔥 CORS MIDDLEWARE (VERY IMPORTANT)
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(passport.initialize());
+
+const io = initSocket(server);
 
 // Routes
 app.use("/auth", require("./routes/authRoutes"));

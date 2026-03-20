@@ -1,0 +1,242 @@
+/* Root scaling */
+:root {
+  font-size: 16px;
+  --primary: #2563eb;
+  --bg: #f8fafc;
+  --border: #e5e7eb;
+  --text: #111827;
+  --muted: #6b7280;
+}
+
+/* Layout */
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+}
+
+/* 🔷 Navbar */
+.navbar {
+  height: 3.5rem;
+  background: white;
+  border-bottom: 0.0625rem solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.logo-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-icon {
+  cursor: pointer;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.avatar {
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+/* 🔷 Sidebar */
+.sidebar {
+  width: clamp(12rem, 18%, 16rem);
+  border-right: 0.0625rem solid var(--border);
+  padding: 1.25rem 1rem;
+  background: white;
+}
+
+.org-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  transition: 0.2s;
+}
+
+.sidebar li:hover {
+  background: #eef2ff;
+}
+
+.sidebar li.active {
+  background: #e5edff;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+/* 🔷 Content */
+.content {
+  flex: 1;
+  padding: clamp(1rem, 2vw, 2rem);
+  background: var(--bg);
+}
+
+/* Header */
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.content-header h2 {
+  font-size: clamp(1.2rem, 1.5vw, 1.6rem);
+}
+
+.content-header p {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.create-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* 🔷 Grid */
+.grid {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1.25rem;
+}
+
+/* 🔷 Card */
+.space-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 0.6rem;
+  border: 0.0625rem solid var(--border);
+  transition: 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.space-card:hover {
+  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.06);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.icon {
+  font-size: 1rem;
+}
+
+.tag {
+  font-size: 0.7rem;
+  background: #f1f5f9;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999rem;
+}
+
+.space-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.space-card p {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.card-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* 🔥 RESPONSIVENESS */
+
+/* Tablet */
+@media (max-width: 48rem) {
+  .sidebar {
+    display: none;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+
+  .navbar {
+    padding: 0 1rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 30rem) {
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.logout {
+  margin-top: 1rem;
+  color: #ef4444;
+}
+
+.logout:hover {
+  background: #fee2e2;
+}
