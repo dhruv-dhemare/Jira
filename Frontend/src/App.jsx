@@ -4,6 +4,7 @@ import Landing from "./pages/Landing";
 import Spaces from "./pages/Spaces";
 import Profile from "./pages/Profile";
 import CreateSpace from "./pages/CreateSpace";
+import Timeline from "./pages/Timeline";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -33,6 +34,12 @@ function App() {
           path="/profile"
           element={
             <Profile />
+          }
+        />
+        <Route
+          path="/timeline"
+          element={
+            <Timeline />
           }
         />
       </Routes>

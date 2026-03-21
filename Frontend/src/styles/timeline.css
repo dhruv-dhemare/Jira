@@ -1,0 +1,93 @@
+/* Container */
+.timeline-container {
+  height: 80vh;
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 1vw;
+  border: 0.08vw solid #d1d5db;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.timeline-header {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  height: 7vh;
+  background: #f3f4f6;
+}
+
+/* Month cells */
+.month {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95vw;
+  font-weight: 500;
+  color: #475569;
+
+  border-right: 0.08vw solid #d1d5db;
+  border-bottom: 0.08vw solid #d1d5db;
+}
+
+/* Remove last column border */
+.month:last-child {
+  border-right: none;
+}
+
+/* Body */
+.timeline-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Row */
+.timeline-row {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  height: 9vh;
+}
+
+/* EACH CELL (THIS IS THE KEY 🔥) */
+.timeline-row > div {
+  border-right: 0.08vw solid #d1d5db;
+  border-bottom: 0.08vw solid #d1d5db;
+}
+
+/* Remove last column border */
+.timeline-row > div:last-child {
+  border-right: none;
+}
+
+/* Event */
+.event {
+  margin: 1.5vh 0.5vw;
+  border-radius: 0.6vw;
+  padding: 0.8vh 0.8vw;
+  font-size: 0.85vw;
+  font-weight: 500;
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Colors */
+.event.completed {
+  background: #9ca3af;
+}
+
+.event.ongoing {
+  background: #2ea66f;
+}
+
+.event.upcoming {
+  background: #3b6fcf;
+}
