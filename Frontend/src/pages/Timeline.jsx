@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
 import TimelineGrid from "../components/TimelineGrid";
 import EventModal from "../components/EventModal";
+import AddEventModal from "../components/AddEventModal";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
@@ -11,10 +13,22 @@ const Timeline = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [user, setUser] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     fetchCompetitions();
+    fetchUser();
   }, []);
+
+  const fetchUser = async () => {
+    try {
+      const res = await api.get("/users/me");
+      setUser(res.data);
+    } catch (err) {
+      console.error("Error fetching user:", err);
+    }
+  };
 
   const fetchCompetitions = async () => {
     try {
@@ -55,15 +69,34 @@ const Timeline = () => {
             {loading && <p>Loading competitions...</p>}
             {error && <p style={{ color: "red" }}>{error}</p>}
             {!loading && <TimelineGrid events={events} onEventSelect={setSelectedEvent} />}
+            
+            {/* Add Event Button - Only visible to managers */}
+            {!loading && user?.role === "manager" && (
+              <button 
+                className="btn-add-event" 
+                onClick={() => setShowAddModal(true)}
+              >
+                <Plus size={15} />
+                Add Event
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Event Modal */}
+      {/* Event View Modal */}
       {selectedEvent && (
         <EventModal 
           event={selectedEvent} 
           onClose={() => setSelectedEvent(null)} 
+        />
+      )}
+
+      {/* Add Event Modal */}
+      {showAddModal && (
+        <AddEventModal 
+          onClose={() => setShowAddModal(false)}
+          onEventAdded={fetchCompetitions}
         />
       )}
     </div>
