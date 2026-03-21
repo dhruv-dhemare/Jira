@@ -29,6 +29,7 @@ app.use("/projects", require("./routes/projectRoutes"));
 app.use("/members", require("./routes/memberRoutes"));
 app.use("/tasks", require("./routes/taskRoutes"));
 app.use("/notifications", require("./routes/notificationRoutes"));
+app.use("/inventory", require("./routes/inventoryRoutes"));
 
 server.listen(5000, () => {
   console.log("🚀 Server running on port 5000");

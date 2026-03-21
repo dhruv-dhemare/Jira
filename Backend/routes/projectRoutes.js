@@ -65,7 +65,6 @@ router.get("/", verifyToken, async (req, res) => {
       `,
       [req.user.id]
     );
-
     res.json(projects.rows);
 
   } catch (err) {
@@ -73,5 +72,6 @@ router.get("/", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch projects" });
   }
 });
+
 
 module.exports = router;

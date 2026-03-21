@@ -17,6 +17,7 @@ export default function Spaces() {
     // Check localStorage first, then check URL for token
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get("token");
+    console.log("urlToken:", urlToken); 
     
     if (!localStorage.getItem("token") && !urlToken) {
       navigate("/");
