@@ -1,19 +1,92 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import TimelineHeader from "./TimelineHeader";
 import EventBar from "./EventBar";
 import "../styles/timeline.css";
 
-const TimelineGrid = ({ events }) => {
-  return (
-    <div className="timeline-container">
-      <TimelineHeader />
+const TimelineGrid = ({ events, onEventSelect }) => {
+  const [selectedYear, setSelectedYear] = useState("2025-2026");
 
-      <div className="timeline-body">
-        {events.map((event, index) => (
-          <EventBar key={index} event={event} />
-        ))}
+  // Filter events based on selected academic year (July-June)
+  const filteredEvents = useMemo(() => {
+    const startYear = parseInt(selectedYear.split("-")[0]);
+    const endYear = parseInt(selectedYear.split("-")[1]);
+
+    const yearStart = new Date(startYear, 6, 1); // July 1
+    const yearEnd = new Date(endYear, 5, 30); // June 30
+
+    const filtered = events.filter((event) => {
+      // Extract date part (YYYY-MM-DD) from ISO string and parse at midnight
+      const dateOnly = event.startDate.split("T")[0];
+      const endDateOnly = event.endDate.split("T")[0];
+      
+      const startDate = new Date(dateOnly + "T00:00:00");
+      const endDate = new Date(endDateOnly + "T00:00:00");
+
+      const overlaps = startDate <= yearEnd && endDate >= yearStart;
+      return overlaps;
+    });
+    
+    return filtered;
+  }, [selectedYear, events]);
+
+  return (
+    <>
+      <div className="timeline-top-header">
+        <div className="timeline-top-right">
+          <select
+            className="year-selector"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+          >
+            <option value="2024-2025">2024-2025</option>
+            <option value="2025-2026">2025-2026</option>
+            <option value="2026-2027">2026-2027</option>
+          </select>
+        </div>
       </div>
-    </div>
+
+      <div className="timeline-container">
+        <TimelineHeader />
+
+        <div className="timeline-body">
+          {/* Render events */}
+          {filteredEvents.map((event, index) => (
+            <EventBar
+              key={index}
+              event={event}
+              selectedYear={selectedYear}
+              onEventClick={onEventSelect}
+            />
+          ))}
+
+          {/* Ensure minimum 4 rows */}
+          {Array.from({
+            length: Math.max(4 - filteredEvents.length, 0),
+          }).map((_, index) => (
+            <div key={`empty-${index}`} className="timeline-row">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={`cell-${i}`} className="timeline-cell"></div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        <div className="timeline-footer">
+          <div className="legend-item">
+            <div className="legend-dot completed"></div>
+            <span>Completed</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-dot ongoing"></div>
+            <span>Ongoing</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-dot upcoming"></div>
+            <span>Upcoming</span>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 

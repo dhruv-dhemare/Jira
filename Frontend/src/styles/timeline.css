@@ -1,93 +1,199 @@
+
+
+
+.year-selector {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.4rem;
+  background: white;
+  color: #475569;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.year-selector:hover {
+  border-color: #000000;
+  color: #000000;
+}
+
+/* Top Header */
+.timeline-top-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 1.5rem;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.timeline-top-right {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 /* Container */
 .timeline-container {
-  height: 80vh;
-  width: 100%;
-  background: #f8fafc;
-  border-radius: 1vw;
-  border: 0.08vw solid #d1d5db;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 /* Header */
 .timeline-header {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  height: 7vh;
-  background: #f3f4f6;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-/* Month cells */
 .month {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.95vw;
-  font-weight: 500;
+  padding: 1rem 0.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: #475569;
-
-  border-right: 0.08vw solid #d1d5db;
-  border-bottom: 0.08vw solid #d1d5db;
+  border-right: 1px solid #e5e7eb;
 }
 
-/* Remove last column border */
 .month:last-child {
   border-right: none;
 }
 
 /* Body */
 .timeline-body {
-  flex: 1;
   display: flex;
   flex-direction: column;
+}
+
+/* Empty State */
+.timeline-empty {
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 1rem;
+  background: #fafbfc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.timeline-empty p {
+  margin: 0;
 }
 
 /* Row */
 .timeline-row {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  height: 9vh;
+  position: relative;
+  min-height: 70px;
+  border-bottom: 1px solid #e5e7eb;
+  width: 100%;
 }
 
-/* EACH CELL (THIS IS THE KEY 🔥) */
-.timeline-row > div {
-  border-right: 0.08vw solid #d1d5db;
-  border-bottom: 0.08vw solid #d1d5db;
+.timeline-row:last-child {
+  border-bottom: none;
 }
 
-/* Remove last column border */
-.timeline-row > div:last-child {
+.timeline-cell {
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.timeline-cell:last-child {
   border-right: none;
 }
 
 /* Event */
 .event {
-  margin: 1.5vh 0.5vw;
-  border-radius: 0.6vw;
-  padding: 0.8vh 0.8vw;
-  font-size: 0.85vw;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  margin: 0 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  color: white;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  height: auto;
+  min-height: 2rem;
+  opacity: 0.95;
+  color: white;
+  z-index: 10;
+  pointer-events: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Colors */
+.event:hover {
+  transform: translateY(calc(-50% - 2px));
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  opacity: 1;
+}
+
+
 .event.completed {
   background: #9ca3af;
+  color: rgb(255, 255, 255);
 }
 
 .event.ongoing {
-  background: #2ea66f;
+  background: #16a34a;
+  color: white;
 }
 
 .event.upcoming {
-  background: #3b6fcf;
+  background: #2563eb;
+  color: white;
+}
+
+/* Footer Legend */
+.timeline-footer {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.legend-dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 0.15rem;
+}
+
+.legend-dot.completed {
+  background: #9ca3af;
+}
+
+.legend-dot.ongoing {
+  background: #16a34a;
+}
+
+.legend-dot.upcoming {
+  background: #2563eb;
 }
