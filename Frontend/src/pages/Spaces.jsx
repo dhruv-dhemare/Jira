@@ -9,70 +9,73 @@ import "../styles/spaces.css";
 export default function Spaces() {
   const [spaces, setSpaces] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
-  if (!localStorage.getItem("token")) {
-    window.location.href = "/";
-  }
+  // 🔐 Auth check (React-friendly)
+  useEffect(() => {
+    // Check localStorage first, then check URL for token
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get("token");
+    
+    if (!localStorage.getItem("token") && !urlToken) {
+      navigate("/");
+    }
+  }, [navigate]);
 
   useEffect(() => {
     handleAuthAndFetch();
   }, []);
 
-const handleAuthAndFetch = async () => {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("token");
+  const handleAuthAndFetch = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
 
-  if (token) {
-    localStorage.setItem("token", token);
-    window.history.replaceState({}, document.title, "/spaces");
-  }
+    if (token) {
+      localStorage.setItem("token", token);
+      window.history.replaceState({}, document.title, "/spaces");
+    }
 
-  try {
-    const projectsRes = await api.get("/projects");
-    setSpaces(projectsRes.data);
-  } catch (err) {
-    console.error("Failed to fetch projects", err);
-  }
+    try {
+      const [projectsRes, userRes] = await Promise.all([
+        api.get("/projects"),
+        api.get("/users/me"),
+      ]);
 
-  try {
-    const userRes = await api.get("/users/me");
-    setUser(userRes.data);
-  } catch (err) {
-    console.error("Failed to fetch user", err);
-  }
+      setSpaces(projectsRes.data);
+      setUser(userRes.data);
+    } catch (err) {
+      console.error("Failed to fetch data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  setLoading(false);
-};
-
-  const createSpace = async () => {
-  try {
-    const res = await api.post("/projects", {
-      name: "New Project",
-      description: "Test project",
+  // 📅 Format date helper
+  const formatDate = (date) => {
+    if (!date) return "--";
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
+  };
 
-    setSpaces((prev) => [...prev, res.data]);
-  } catch (err) {
-    console.error(err);
-  }
-};
+  // ➕ Create project (basic for now)
+  // const createSpace = async () => {
+  //   try {
+  //     const res = await api.post("/projects", {
+  //       name: "New Project",
+  //       description: "Test project",
+  //       start_date: new Date().toISOString().split("T")[0],
+  //       end_date: null,
+  //     });
 
-// useEffect(() => {
-//   console.log("Spaces loaded");
-//   console.log("URL:", window.location.href);
-
-//   const params = new URLSearchParams(window.location.search);
-//   const token = params.get("token");
-
-//   console.log("TOKEN FROM URL:", token);
-
-//   if (token) {
-//     localStorage.setItem("token", token);
-//     window.history.replaceState({}, document.title, "/spaces");
-//   }
-// }, []);
+  //     setSpaces((prev) => [...prev, res.data]);
+  //   } catch (err) {
+  //     console.error("Create project failed", err);
+  //   }
+  // };
 
   return (
     <div className="layout">
@@ -88,12 +91,12 @@ const handleAuthAndFetch = async () => {
             </div>
 
             {user?.role === "manager" && (
-            <button
+              <button
                 className="create-btn"
                 onClick={() => navigate("/create-space")}
-            >
+              >
                 + Create Space
-            </button>
+              </button>
             )}
           </div>
 
@@ -105,17 +108,21 @@ const handleAuthAndFetch = async () => {
             <p>No projects yet. Create one 🚀</p>
           )}
 
-          {/* ✅ Data */}
+          {/* ✅ Projects Grid */}
           <div className="grid">
             {spaces.map((space) => (
-              <SpaceCard 
+              <SpaceCard
                 key={space.id}
                 title={space.name}
-                desc={space.description}
-                members={"--"}   // not available yet
-                date={"--"}      // not available yet
-                type={"SCRUM"}   // placeholder
-                onClick={() => navigate(`/project/${space.id}`)}  
+                desc={space.description || "No description"}
+                members={"--"} // can upgrade later
+                date={
+                  space.end_date
+                    ? `Deadline: ${formatDate(space.end_date)}`
+                    : `Created: ${formatDate(space.created_at)}`
+                }
+                type={space.status?.toUpperCase() || "ACTIVE"}
+                onClick={() => navigate(`/project/${space.id}`)}
               />
             ))}
           </div>
