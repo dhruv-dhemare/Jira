@@ -5,6 +5,7 @@ import Spaces from "./pages/Spaces";
 import Profile from "./pages/Profile";
 import CreateSpace from "./pages/CreateSpace";
 import Timeline from "./pages/Timeline";
+import Inventory from "./pages/Inventory";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -40,6 +41,12 @@ function App() {
           path="/timeline"
           element={
             <Timeline />
+          }
+        />
+        <Route
+          path="/inventory"
+          element={
+            <Inventory />
           }
         />
       </Routes>
