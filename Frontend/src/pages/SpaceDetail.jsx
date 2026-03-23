@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../api/axios";
 import {
   BarChart3,
   CalendarDays,
@@ -99,12 +100,24 @@ export default function SpaceDetail() {
     setDraggedFrom(null);
   };
 
-  // Mock data - will connect to backend later
-  const projectData = {
-    name: "Mechano Bot",
-    type: "Scrum",
-    members: 4,
+  const [projectData, setProjectData] = useState({});
+  const fetchProjectDetails = async () => {
+    try {
+      const res = await api.get(`/projects/${id}`);
+
+      setProjectData({
+        name: res.data.name,
+        members: res.data.member_count,
+      });
+
+    } catch (err) {
+      console.error("Error fetching project:", err);
+    }
   };
+  useEffect(() => {
+    fetchMembers();
+    fetchProjectDetails();
+  }, [id]);
 
   const taskStats = {
     total: 11,
@@ -168,12 +181,68 @@ export default function SpaceDetail() {
     });
   };
 
-  const members = [
-    { id: 1, name: "John Doe", email: "john@club.edu", initials: "JD", role: "Admin" },
-    { id: 2, name: "Alice Smith", email: "alice@club.edu", initials: "AS", role: "Manager" },
-    { id: 3, name: "Mike Kumar", email: "mike@club.edu", initials: "MK", role: "Member" },
-    { id: 4, name: "Raj Joshi", email: "raj@club.edu", initials: "RJ", role: "Member" },
-  ];
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+
+  const fetchMembers = async () => {
+  try {
+    setLoadingMembers(true);
+
+    const res = await api.get(`/projects/${id}/members`);
+
+    // Format for UI
+    const formattedMembers = res.data.map((member) => ({
+      id: member.id,
+      name: member.name,
+      email: member.email,
+      role: member.role,
+      initials: member.name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase(),
+      avatar: member.avatar || null,
+    }));
+
+      setMembers(formattedMembers);
+
+    } catch (err) {
+      console.error("Error fetching members:", err);
+      setMembers([]);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+  useEffect(() => {
+    fetchMembers();
+  }, [id]);
+
+  const handleAddMember = async () => {
+    try {
+      setAdding(true);
+
+      await api.post(`/projects/${id}/add-member`, { email ,role});
+
+      setEmail("");
+      setRole("worker");
+      setShowModal(false);
+      
+
+      // refresh members
+      fetchMembers();
+
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Error adding member");
+    } finally {
+      setAdding(false);
+    }
+  };
+  const [showModal, setShowModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const [role, setRole] = useState("worker"); // default
 
   const taskAssignment = [
     { name: "John Doe", tasks: 2, percentage: 18 },
@@ -200,7 +269,7 @@ export default function SpaceDetail() {
               </button>
               <div className="header-title">
                 <h1>{projectData.name}</h1>
-                <p>{projectData.type} · {projectData.members} Members</p>
+                <p>{projectData.members} Members</p>
               </div>
             </div>
 
@@ -657,22 +726,86 @@ export default function SpaceDetail() {
               <div className="tab-content">
                 <div className="members-header">
                   <h3>Members</h3>
-                  <button className="add-member-btn">
+                  <button 
+                    className="add-member-btn"
+                    onClick={() => setShowModal(true)}
+                  >
                     <Plus size="0.875rem" /> Add Member
                   </button>
                 </div>
                 <div className="members-list">
-                  {members.map((member) => (
-                    <div key={member.id} className="member-item">
-                      <div className="member-avatar">{member.initials}</div>
-                      <div className="member-info">
-                        <div className="member-name">{member.name}</div>
-                        <div className="member-email">{member.email}</div>
+                  {loadingMembers ? (
+                    <div className="loading">Loading members...</div>
+                  ) : (
+                    members.map((member) => (
+                      <div key={member.id} className="member-item">
+                        
+                        {/* Avatar */}
+                        <div className="member-avatar">
+                          {member.avatar ? (
+                            <img src={member.avatar} alt={member.name} />
+                          ) : (
+                            <div className="avatar-fallback">{member.initials}</div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="member-info">
+                          <div className="member-name">{member.name}</div>
+                          <div className="member-email">{member.email}</div>
+                        </div>
+
+                        {/* Role */}
+                        <div className="member-role">{member.role}</div>
                       </div>
-                      <div className="member-role">{member.role}</div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
+              </div>
+            )}
+            {showModal && (
+              <div className="modal-overlay">
+                <div className="modal">
+                  <h3>Add Member</h3>
+
+                  <input
+                    type="email"
+                    placeholder="Enter email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+
+                  {/* 🔥 ROLE RADIO BUTTONS */}
+                  <div className="role-selection">
+                    <label>
+                      <input
+                        type="radio"
+                        value="master"
+                        checked={role === "master"}
+                        onChange={(e) => setRole(e.target.value)}
+                      />
+                      Master
+                    </label>
+
+                    <label>
+                      <input
+                        type="radio"
+                        value="worker"
+                        checked={role === "worker"}
+                        onChange={(e) => setRole(e.target.value)}
+                      />
+                      Worker
+                    </label>
+                  </div>
+
+                  <div className="modal-actions">
+                    <button onClick={() => setShowModal(false)}>Cancel</button>
+
+                    <button onClick={handleAddMember} disabled={adding}>
+                      {adding ? "Adding..." : "Add"}
+                    </button>
+                  </div>
+</div>
               </div>
             )}
           </div>
