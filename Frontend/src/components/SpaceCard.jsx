@@ -1,6 +1,6 @@
-export default function SpaceCard({ title, desc, members, date, type }) {
+export default function SpaceCard({ title, desc, members, date, type, onClick }) {
   return (
-    <div className="space-card">
+    <div className="space-card" onClick={onClick} style={{ cursor: 'pointer' }}>
       <div className="card-header">
         <span className="icon">⬜</span>
         <span className="tag">{type}</span>

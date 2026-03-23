@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { useState } from "react";
 import Landing from "./pages/Landing";
 import Spaces from "./pages/Spaces";
+import SpaceDetail from "./pages/SpaceDetail";
 import Profile from "./pages/Profile";
 import CreateSpace from "./pages/CreateSpace";
 import Timeline from "./pages/Timeline";
@@ -23,6 +24,12 @@ function App() {
           path="/spaces"
           element={
               <Spaces />
+          }
+        />
+        <Route
+          path="/spaces/:id"
+          element={
+            <SpaceDetail />
           }
         />
         <Route

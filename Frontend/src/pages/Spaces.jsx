@@ -123,7 +123,7 @@ export default function Spaces() {
                     : `Created: ${formatDate(space.created_at)}`
                 }
                 type={space.status?.toUpperCase() || "ACTIVE"}
-                onClick={() => navigate(`/project/${space.id}`)}
+                onClick={() => navigate(`/spaces/${space.id}`)}
               />
             ))}
           </div>
