@@ -95,6 +95,9 @@ export default function SpaceDetail() {
   };
 
   const [projectData, setProjectData] = useState({});
+  const [tasksData, setTasksData] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+
   const fetchProjectDetails = async () => {
     try {
       const res = await api.get(`/projects/${id}`);
@@ -108,16 +111,40 @@ export default function SpaceDetail() {
       console.error("Error fetching project:", err);
     }
   };
+
+  const fetchTasks = async () => {
+    try {
+      setLoadingTasks(true);
+      const res = await api.get(`/tasks/${id}`);
+      setTasksData(res.data);
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+      setTasksData([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
     fetchProjectDetails();
+    fetchTasks();
   }, [id]);
 
+  // Calculate taskStats from fetched tasks
   const taskStats = {
-    total: 11,
-    done: 2,
-    inProgress: 3,
-    toDo: 6,
+    total: tasksData.length,
+    done: tasksData.filter(t => t.status === "Done").length,
+    inProgress: tasksData.filter(t => t.status === "In Review" || t.status === "inprogress").length,
+    toDo: tasksData.filter(t => t.status === "Todo").length,
+  };
+
+  // Calculate progress percentages
+  const total = taskStats.total || 1;
+  const progressPercentages = {
+    done: Math.round((taskStats.done / total) * 100),
+    inProgress: Math.round((taskStats.inProgress / total) * 100),
+    toDo: Math.round((taskStats.toDo / total) * 100),
   };
 
   const tasks = [
@@ -131,6 +158,42 @@ export default function SpaceDetail() {
     { id: 2, name: "Design power distribution board", label: "hardware", points: 5 },
     { id: 3, name: "Implement PID controller", label: "code", points: 8 },
   ];
+
+  // Function to get backlog tasks with past deadlines
+  const getBacklogTasks = () => {
+    if (loadingTasks || loadingMembers) {
+      return [];
+    }
+
+    const now = new Date();
+    
+    return tasksData
+      .filter(task => {
+        // Include tasks in backlog/todo status
+        const isBacklogStatus = task.status === "Todo";
+        
+        // Check if task has a past deadline
+        let isPastDeadline = false;
+        if (task.deadline) {
+          const deadline = new Date(task.deadline);
+          isPastDeadline = deadline < now;
+        }
+        
+        return isBacklogStatus && isPastDeadline;
+      })
+      .map(task => {
+        // Find assignee name
+        const assignee = members.find(m => m.id === task.assigned_to);
+        
+        return {
+          id: task.id,
+          name: task.title,
+          label: task.description || "task",
+          assignee: assignee?.name || null,
+          deadline: task.deadline,
+        };
+      });
+  };
 
   const sprintTasksById = {
     1: boardData.done.map((t) => ({ ...t, status: "done" })),
@@ -238,13 +301,51 @@ export default function SpaceDetail() {
 
   const [role, setRole] = useState("worker"); // default
 
-  const taskAssignment = [
-    { name: "John Doe", tasks: 2, percentage: 18 },
-    { name: "Alice Smith", tasks: 2, percentage: 18 },
-    { name: "Mike Kumar", tasks: 2, percentage: 18 },
-    { name: "Raj Joshi", tasks: 2, percentage: 18 },
-    { name: "Unassigned", tasks: 3, percentage: 27 },
-  ];
+  // Calculate taskAssignment grouped by assignee
+  const getTaskAssignment = () => {
+    const assignmentMap = {};
+    
+    tasksData.forEach(task => {
+      if (task.assigned_to) {
+        // Find member by id
+        const member = members.find(m => m.id === task.assigned_to);
+        
+        if (member) {
+          // Group by email (unique identifier) instead of name
+          const email = member.email;
+          
+          if (!assignmentMap[email]) {
+            assignmentMap[email] = {
+              name: member.name,
+              tasks: 0
+            };
+          }
+          assignmentMap[email].tasks++;
+        }
+      }
+    });
+
+    // Add unassigned count
+    const unassignedCount = tasksData.filter(t => !t.assigned_to).length;
+    if (unassignedCount > 0) {
+      assignmentMap["unassigned"] = {
+        name: "Unassigned",
+        tasks: unassignedCount
+      };
+    }
+
+    // Convert to array format and calculate percentages
+    const total = tasksData.length || 1;
+    const taskAssignmentArray = Object.entries(assignmentMap).map(([email, data]) => ({
+      name: data.name,
+      tasks: data.tasks,
+      percentage: Math.round((data.tasks / total) * 100),
+    }));
+
+    return taskAssignmentArray;
+  };
+
+  const taskAssignment = getTaskAssignment();
 
   return (
     <div className="layout">
@@ -283,8 +384,8 @@ export default function SpaceDetail() {
 
           {/* Content */}
           <div className="space-detail-content">
-            {activeTab === "summary" && <SummaryTab taskStats={taskStats} taskAssignment={taskAssignment} />}
-            {activeTab === "backlog" && <BacklogTab backlogItems={backlogItems} />}
+            {activeTab === "summary" && <SummaryTab taskStats={taskStats} taskAssignment={taskAssignment} progressPercentages={progressPercentages} />}
+            {activeTab === "backlog" && <BacklogTab backlogItems={getBacklogTasks()} />}
             {activeTab === "sprints" && (
               <SprintsTab
                 sprints={sprints}
@@ -303,7 +404,7 @@ export default function SpaceDetail() {
                 handleDragEnd={handleDragEnd}
               />
             )}
-            {activeTab === "calendar" && <CalendarTab />}
+            {activeTab === "calendar" && <CalendarTab tasksData={tasksData} />}
             {activeTab === "members" && (
               <MembersTab
                 members={members}
