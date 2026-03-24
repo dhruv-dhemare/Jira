@@ -1192,6 +1192,12 @@
   color: var(--text);
 }
 
+img{
+  height: 4vh;
+  width: 4vh;
+  border-radius: 100%;
+}
+
 .add-member-btn {
   background: var(--primary);
   color: white;
