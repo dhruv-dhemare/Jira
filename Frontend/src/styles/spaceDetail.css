@@ -705,6 +705,30 @@
   flex-shrink: 0;
 }
 
+.sprint-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.sprint-delete-btn:hover {
+  color: #ef4444;
+  background: #fee2e2;
+  border-radius: var(--radius-sm);
+}
+
+.sprint-delete-btn:active {
+  transform: scale(0.95);
+}
+
 .status-badge {
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
@@ -793,6 +817,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: clamp(2vh, 1.5vh, 2vh);
 }
 
 .sprint-task-meta {
@@ -810,6 +835,10 @@
   font-weight: 600;
   text-transform: lowercase;
   letter-spacing: 0.03em;
+  max-width: 15vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sprint-task-points {
@@ -825,9 +854,21 @@
   font-size: clamp(0.9vh, 0.7vw, 1.1vh);
 }
 
+.sprint-task-deadline {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25vh 0.7vh;
+  border-radius: var(--radius-sm);
+  background: #f0f9ff;
+  border: var(--line) solid #bfdbfe;
+  font-weight: 600;
+  color: #1e40af;
+  font-size: clamp(1.5vh, 0.7vw, 1.1vh);
+}
+
 .sprint-task-avatar {
-  width: 2.4vh;
-  height: 2.4vh;
+  width: 4vh;
+  height: 4vh;
   border-radius: 50%;
   background: var(--primary);
   color: white;
@@ -835,7 +876,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: clamp(0.85vh, 0.68vw, 1.05vh);
+  font-size: clamp(1.5vh, 0.68vw, 1.05vh);
 }
 
 .sprint-task-avatar.unassigned {
@@ -1320,6 +1361,26 @@ img{
   justify-content: center;
   font-weight: 600;
   font-size: var(--font-size-base);
+  overflow: hidden;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.member-avatar .avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  font-size: var(--font-size-base);
 }
 
 .member-info {
@@ -1575,4 +1636,89 @@ img{
 .modal-actions {
   display: flex;
   justify-content: space-between;
+}
+
+/* Sprint Modal Styles */
+.modal-lg {
+  width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.modal-form-group label {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: var(--text);
+}
+
+.modal-input,
+.modal-textarea {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+
+.modal-input:focus,
+.modal-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.modal-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.modal-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.modal-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.modal-btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.modal-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-btn-cancel {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.modal-btn-cancel:hover {
+  background: #f1f5f9;
 }

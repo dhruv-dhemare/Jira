@@ -1,6 +1,12 @@
 import { Plus } from "lucide-react";
 
 export default function MembersTab({ members, loadingMembers, onAddMemberClick }) {
+  const getAvatar = (url) => {
+    if (!url) return null;
+    // Transform Google profile image size parameter if present
+    return url.replace(/=s\d+-c$/, "=s200-c");
+  };
+
   return (
     <div className="tab-content">
       <div className="members-header">
@@ -18,7 +24,11 @@ export default function MembersTab({ members, loadingMembers, onAddMemberClick }
               {/* Avatar */}
               <div className="member-avatar">
                 {member.avatar ? (
-                  <img src={member.avatar} alt={member.name} />
+                  <img 
+                    src={getAvatar(member.avatar)} 
+                    alt={member.name}
+                    referrerPolicy="no-referrer"
+                  />
                 ) : (
                   <div className="avatar-fallback">{member.initials}</div>
                 )}

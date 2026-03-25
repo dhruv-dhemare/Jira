@@ -31,6 +31,7 @@ app.use("/tasks", require("./routes/taskRoutes"));
 app.use("/notifications", require("./routes/notificationRoutes"));
 app.use("/competitions", require("./routes/competitionRoutes"));
 app.use("/inventory", require("./routes/inventoryRoutes"));
+app.use("/sprints", require("./routes/sprintRoutes"));
 
 server.listen(5000, () => {
   console.log("🚀 Server running on port 5000");
