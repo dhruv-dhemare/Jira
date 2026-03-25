@@ -14,12 +14,12 @@ router.post(
   isProjectMember,
   allowProjectRoles("manager", "master"),
   async (req, res) => {
-    const { title, description, projectId, assignedTo } = req.body;
+    const { title, description, projectId, assignedTo, deadline, sprintId } = req.body;
 
     const task = await pool.query(
-      `INSERT INTO tasks (title, description, project_id, assigned_to, created_by)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [title, description, projectId, assignedTo, req.user.id]
+      `INSERT INTO tasks (title, description, project_id, assigned_to, created_by, deadline, sprint_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [title, description, projectId, assignedTo, req.user.id, deadline, sprintId]
     );
     
     const io = getIO();
@@ -76,7 +76,7 @@ router.get(
 // Update task (assigned user OR master/manager)
 router.put("/:taskId", verifyToken, async (req, res) => {
   const { taskId } = req.params;
-  const { status } = req.body;
+  const { status, title, description, deadline, sprintId, assignedTo } = req.body;
 
   const task = await pool.query(
     "SELECT * FROM tasks WHERE id=$1",
@@ -93,11 +93,19 @@ router.put("/:taskId", verifyToken, async (req, res) => {
   }
 
   const updated = await pool.query(
-    "UPDATE tasks SET status=$1 WHERE id=$2 RETURNING *",
-    [status, taskId]
+    `UPDATE tasks SET 
+      status=$1, 
+      title=COALESCE($2, title), 
+      description=COALESCE($3, description), 
+      deadline=COALESCE($4, deadline), 
+      sprint_id=COALESCE($5, sprint_id),
+      assigned_to=COALESCE($6, assigned_to)
+     WHERE id=$7 RETURNING *`,
+    [status, title, description, deadline, sprintId, assignedTo, taskId]
   );
+  
   await createNotification(
-    task.assigned_to,
+    taskData.assigned_to,
     "Your task status was updated",
     "TASK_UPDATED"
   );

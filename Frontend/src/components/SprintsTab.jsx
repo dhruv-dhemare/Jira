@@ -1,11 +1,11 @@
-import { Plus, ChevronDown, ChevronRight, CheckCircle2, Play, Circle } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, CheckCircle2, Play, Circle, Trash2 } from "lucide-react";
 
-export default function SprintsTab({ sprints, expandedSprintIds, toggleSprintExpanded, sprintTasksById }) {
+export default function SprintsTab({ sprints, expandedSprintIds, toggleSprintExpanded, sprintTasksById, onCreateSprintClick, onDeleteSprint }) {
   return (
     <div className="tab-content">
       <div className="sprints-header">
         <h3>Sprints</h3>
-        <button className="create-sprint-btn">
+        <button className="create-sprint-btn" onClick={onCreateSprintClick}>
           <Plus size="0.875rem" /> Create Sprint
         </button>
       </div>
@@ -46,6 +46,20 @@ export default function SprintsTab({ sprints, expandedSprintIds, toggleSprintExp
                   {sprint.tasks}
                 </span>
               </span>
+              <button
+                type="button"
+                className="sprint-delete-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (window.confirm(`Delete sprint "${sprint.name}"?`)) {
+                    onDeleteSprint(sprint.id);
+                  }
+                }}
+                aria-label={`Delete sprint ${sprint.name}`}
+                title="Delete sprint"
+              >
+                <Trash2 size="1rem" />
+              </button>
             </button>
 
             {expandedSprintIds.has(sprint.id) && (
@@ -54,24 +68,26 @@ export default function SprintsTab({ sprints, expandedSprintIds, toggleSprintExp
 
                 {sprint.tasks > 0 && (
                   <div className="sprint-tasks" role="list">
-                    {sprintTasksById[sprint.id].map((task) => (
-                      <div key={task.id} className="sprint-task-row" role="listitem">
-                        <span className={`task-status-dot ${task.status}`} aria-hidden="true" />
-                        <span className="sprint-task-title">{task.title}</span>
-                        <span className="sprint-task-meta">
-                          <span className={`sprint-task-label label-${task.label}`}>{task.label}</span>
-                          {task.points != null && (
-                            <span className="sprint-task-points">{task.points}</span>
-                          )}
-                          <span
-                            className={`sprint-task-avatar ${!task.assignee ? "unassigned" : ""}`}
-                            aria-label={task.assignee ? `Assignee ${task.assignee}` : "Unassigned"}
-                          >
-                            {task.assignee || "?"}
+                    {sprintTasksById[sprint.id].map((task) => {
+                      const deadlineDate = task.deadline ? new Date(task.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+                      return (
+                        <div key={task.id} className="sprint-task-row" role="listitem">
+                          <span className={`task-status-dot ${task.status}`} aria-hidden="true" />
+                          <span className="sprint-task-title">{task.title}</span>
+                          <span className="sprint-task-meta">
+                            {deadlineDate && (
+                              <span className="sprint-task-deadline">{deadlineDate}</span>
+                            )}
+                            <span
+                              className={`sprint-task-avatar ${!task.assignee ? "unassigned" : ""}`}
+                              aria-label={task.assignee ? `Assignee ${task.assignee}` : "Unassigned"}
+                            >
+                              {task.assignee || "?"}
+                            </span>
                           </span>
-                        </span>
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

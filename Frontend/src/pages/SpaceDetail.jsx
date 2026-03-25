@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import api from "../api/axios";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import BoardTab from "../components/BoardTab";
 import CalendarTab from "../components/CalendarTab";
 import MembersTab from "../components/MembersTab";
 import AddMemberModal from "../components/AddMemberModal";
+import AddSprintModal from "../components/AddSprintModal";
 import "../styles/spaceDetail.css";
 
 export default function SpaceDetail() {
@@ -106,6 +107,22 @@ export default function SpaceDetail() {
   const [projectData, setProjectData] = useState({});
   const [tasksData, setTasksData] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [sprintsData, setSprintsData] = useState([]);
+  const [loadingSprints, setLoadingSprints] = useState(true);
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [role, setRole] = useState("worker"); // default
+
+  // Sprint Modal States
+  const [showSprintModal, setShowSprintModal] = useState(false);
+  const [sprintName, setSprintName] = useState("");
+  const [sprintStartDate, setSprintStartDate] = useState("");
+  const [sprintEndDate, setSprintEndDate] = useState("");
+  const [sprintGoal, setSprintGoal] = useState("");
+  const [creatingSprint, setCreatingSprint] = useState(false);
 
   const fetchProjectDetails = async () => {
     try {
@@ -134,10 +151,24 @@ export default function SpaceDetail() {
     }
   };
 
+  const fetchSprints = async () => {
+    try {
+      setLoadingSprints(true);
+      const res = await api.get(`/sprints/${id}`);
+      setSprintsData(res.data);
+    } catch (err) {
+      console.error("Error fetching sprints:", err);
+      setSprintsData([]);
+    } finally {
+      setLoadingSprints(false);
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
     fetchProjectDetails();
     fetchTasks();
+    fetchSprints();
   }, [id]);
 
   // Calculate taskStats from fetched tasks
@@ -204,39 +235,59 @@ export default function SpaceDetail() {
       });
   };
 
-  const sprintTasksById = {
-    1: boardData.done.map((t) => ({ ...t, status: "done" })),
-    2: [
-      ...boardData.todo.slice(0, 3).map((t) => ({ ...t, status: "todo" })),
-      ...boardData.inprogress.slice(0, 2).map((t) => ({ ...t, status: "inprogress" })),
-      ...boardData.review.slice(0, 1).map((t) => ({ ...t, status: "review" })),
-    ],
-    3: [],
+  const sprintTasksById = useMemo(() => {
+    return tasksData.reduce((acc, task) => {
+      if (task.sprint_id) {
+        if (!acc[task.sprint_id]) {
+          acc[task.sprint_id] = [];
+        }
+        acc[task.sprint_id].push({
+          id: task.id,
+          title: task.title,
+          label: task.description || "task",
+          points: null,
+          status: task.status.toLowerCase() === "done" ? "done" : 
+                  task.status.toLowerCase() === "in review" ? "review" :
+                  task.status.toLowerCase() === "inprogress" ? "inprogress" : "todo",
+          assignee: task.assigned_to ? 
+            members.find(m => m.id === task.assigned_to)?.initials : null,
+          deadline: task.deadline,
+        });
+      }
+      return acc;
+    }, {});
+  }, [tasksData, members]);
+
+  const getSprintStatus = (startDate, endDate) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (end < now) return "COMPLETED";
+    if (start <= now && now <= end) return "ACTIVE";
+    return "PLANNED";
   };
 
-  const sprints = [
-    {
-      id: 1,
-      name: "Sprint 1 - Foundation",
-      date: "Feb 1 - Feb 14",
-      status: "COMPLETED",
-      goal: "Set up project and basic structure",
-    },
-    {
-      id: 2,
-      name: "Sprint 2 - Core Build",
-      date: "Feb 15 - Feb 28",
-      status: "ACTIVE",
-      goal: "Build core hardware and software",
-    },
-    {
-      id: 3,
-      name: "Sprint 3 - Testing",
-      date: "Mar 1 - Mar 14",
-      status: "PLANNED",
-      goal: "Validate performance and reliability",
-    },
-  ].map((s) => ({ ...s, tasks: sprintTasksById[s.id]?.length ?? 0 }));
+  const formatSprintDateRange = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const startStr = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const endStr = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+    return `${startStr} - ${endStr}`;
+  };
+
+  // Transform fetched sprints data to display format
+  const transformedSprints = sprintsData.map((sprint) => ({
+    id: sprint.id,
+    name: sprint.name,
+    date: formatSprintDateRange(sprint.start_date, sprint.end_date),
+    status: getSprintStatus(sprint.start_date, sprint.end_date),
+    goal: sprint.goal || "No goal set",
+  }));
+
+  const sprints = transformedSprints.reverse().map((s) => ({ ...s, tasks: sprintTasksById[s.id]?.length ?? 0 }));
 
   const toggleSprintExpanded = (sprintId) => {
     setExpandedSprintIds((prev) => {
@@ -246,9 +297,6 @@ export default function SpaceDetail() {
       return next;
     });
   };
-
-  const [members, setMembers] = useState([]);
-  const [loadingMembers, setLoadingMembers] = useState(true);
 
   const fetchMembers = async () => {
   try {
@@ -304,11 +352,66 @@ export default function SpaceDetail() {
       setAdding(false);
     }
   };
-  const [showModal, setShowModal] = useState(false);
-  const [email, setEmail] = useState("");
-  const [adding, setAdding] = useState(false);
 
-  const [role, setRole] = useState("worker"); // default
+  const handleCreateSprint = async () => {
+    try {
+      // Validate required fields
+      if (!sprintName.trim()) {
+        alert("Sprint name is required");
+        return;
+      }
+      if (!sprintStartDate || !sprintEndDate) {
+        alert("Start and end dates are required");
+        return;
+      }
+
+      setCreatingSprint(true);
+
+      await api.post(`/sprints`, {
+        name: sprintName,
+        startDate: sprintStartDate,
+        endDate: sprintEndDate,
+        goal: sprintGoal,
+        projectId: id,
+      });
+
+      // Reset form
+      setSprintName("");
+      setSprintStartDate("");
+      setSprintEndDate("");
+      setSprintGoal("");
+      setShowSprintModal(false);
+
+      // Refresh sprints
+      fetchSprints();
+
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Error creating sprint");
+    } finally {
+      setCreatingSprint(false);
+    }
+  };
+
+  const handleDeleteSprint = async (sprintId) => {
+    try {
+      await api.delete(`/sprints/${sprintId}`);
+      
+      // Refresh sprints
+      fetchSprints();
+      
+      // Remove expanded state if the sprint was expanded
+      setExpandedSprintIds(prev => {
+        const next = new Set(prev);
+        next.delete(sprintId);
+        return next;
+      });
+
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Error deleting sprint");
+    }
+  };
 
   // Calculate taskAssignment grouped by assignee
   const getTaskAssignment = () => {
@@ -401,6 +504,8 @@ export default function SpaceDetail() {
                 expandedSprintIds={expandedSprintIds}
                 toggleSprintExpanded={toggleSprintExpanded}
                 sprintTasksById={sprintTasksById}
+                onCreateSprintClick={() => setShowSprintModal(true)}
+                onDeleteSprint={handleDeleteSprint}
               />
             )}
             {activeTab === "board" && (
@@ -433,35 +538,27 @@ export default function SpaceDetail() {
               onCancel={() => setShowModal(false)}
               onAdd={handleAddMember}
             />
-            
-            {showTaskModal && selectedTask && (
-              <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
-                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                  <div className="modal-header">
-                    <h2>{selectedTask.title}</h2>
-                    <button
-                      className="modal-close"
-                      onClick={() => setShowTaskModal(false)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="modal-body">
-                    <p className="modal-description">{selectedTask.description}</p>
-                    <div className="modal-info">
-                      <div className="info-row">
-                        <label>Deadline:</label>
-                        <span>{selectedTask.date || "No deadline"}</span>
-                      </div>
-                      <div className="info-row">
-                        <label>Assigned to:</label>
-                        <span>{selectedTask.assignee || "Unassigned"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+
+            <AddSprintModal
+              showModal={showSprintModal}
+              name={sprintName}
+              startDate={sprintStartDate}
+              endDate={sprintEndDate}
+              goal={sprintGoal}
+              creating={creatingSprint}
+              onNameChange={setSprintName}
+              onStartDateChange={setSprintStartDate}
+              onEndDateChange={setSprintEndDate}
+              onGoalChange={setSprintGoal}
+              onCancel={() => {
+                setShowSprintModal(false);
+                setSprintName("");
+                setSprintStartDate("");
+                setSprintEndDate("");
+                setSprintGoal("");
+              }}
+              onCreate={handleCreateSprint}
+            />
           </div>
         </div>
       </div>
