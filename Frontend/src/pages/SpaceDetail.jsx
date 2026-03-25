@@ -23,27 +23,31 @@ export default function SpaceDetail() {
   // Drag and drop state
   const [draggedCard, setDraggedCard] = useState(null);
   const [draggedFrom, setDraggedFrom] = useState(null);
+  
+  // Task detail modal state
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
 
   // Board data in state so it can be updated
   const [boardData, setBoardData] = useState({
     todo: [
-      { id: 1, title: "Research motor specifications", label: "research", points: 3, date: "Mar 15", assignee: "AS" },
-      { id: 2, title: "Design chassis blueprint", label: "design", points: 5, date: "Mar 15", assignee: "MK" },
-      { id: 3, title: "Order 3D printing filament", label: "procurement", points: null, date: null, assignee: null },
-      { id: 4, title: "Write sensor integration tests", label: "testing", points: 3, date: null, assignee: null },
-      { id: 5, title: "Design power distribution board", label: "hardware", points: 5, date: null, assignee: "RJ" },
-      { id: 6, title: "Implement PID controller", label: "code", points: 8, date: null, assignee: null },
+      { id: 1, title: "Research motor specifications", description: "Gather specifications and datasheets for motor selection", date: "Mar 15", assignee: "AS" },
+      { id: 2, title: "Design chassis blueprint", description: "Create detailed CAD model and drawings for the robot chassis", date: "Mar 15", assignee: "MK" },
+      { id: 3, title: "Order 3D printing filament", description: "Purchase filament for 3D printing parts", date: "Mar 18", assignee: null },
+      { id: 4, title: "Write sensor integration tests", description: "Develop unit tests for sensor integration modules", date: "Mar 20", assignee: null },
+      { id: 5, title: "Design power distribution board", description: "Design PCB for power distribution and management", date: "Mar 22", assignee: "RJ" },
+      { id: 6, title: "Implement PID controller", description: "Code implementation of PID control algorithm", date: "Mar 25", assignee: null },
     ],
     inprogress: [
-      { id: 7, title: "Program Arduino control logic", label: "code", points: 8, date: null, assignee: "JD" },
-      { id: 8, title: "Solder sensor array PCB", label: "hardware", points: 5, date: null, assignee: "AS" },
+      { id: 7, title: "Program Arduino control logic", description: "Implement main control loop and logic for Arduino", date: "Mar 28", assignee: "JD" },
+      { id: 8, title: "Solder sensor array PCB", description: "Assemble and solder all components on the PCB", date: "Mar 30", assignee: "AS" },
     ],
     review: [
-      { id: 9, title: "Test ultrasonic sensor accuracy", label: "testing", points: 3, date: null, assignee: "MK" },
+      { id: 9, title: "Test ultrasonic sensor accuracy", description: "Verify sensor accuracy and calibration parameters", date: "Mar 26", assignee: "MK" },
     ],
     done: [
-      { id: 10, title: "Set up GitHub repository", label: "setup", points: 1, date: null, assignee: "JD" },
-      { id: 11, title: "Create project timeline", label: "planning", points: 2, date: null, assignee: "RJ" },
+      { id: 10, title: "Set up GitHub repository", description: "Initialize repository and set up initial structure", date: "Mar 10", assignee: "JD" },
+      { id: 11, title: "Create project timeline", description: "Define milestones and timeline for the project", date: "Mar 12", assignee: "RJ" },
     ],
   });
 
@@ -94,6 +98,11 @@ export default function SpaceDetail() {
     setDraggedFrom(null);
   };
 
+  const handleTaskClick = (task) => {
+    setSelectedTask(task);
+    setShowTaskModal(true);
+  };
+
   const [projectData, setProjectData] = useState({});
   const [tasksData, setTasksData] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(true);
@@ -135,7 +144,7 @@ export default function SpaceDetail() {
   const taskStats = {
     total: tasksData.length,
     done: tasksData.filter(t => t.status === "Done").length,
-    inProgress: tasksData.filter(t => t.status === "In Review" || t.status === "inprogress").length,
+    inProgress: tasksData.filter(t => t.status === "In Review").length,
     toDo: tasksData.filter(t => t.status === "Todo").length,
   };
 
@@ -402,6 +411,7 @@ export default function SpaceDetail() {
                 handleDragLeave={handleDragLeave}
                 handleDrop={handleDrop}
                 handleDragEnd={handleDragEnd}
+                onTaskClick={handleTaskClick}
               />
             )}
             {activeTab === "calendar" && <CalendarTab tasksData={tasksData} />}
@@ -423,6 +433,35 @@ export default function SpaceDetail() {
               onCancel={() => setShowModal(false)}
               onAdd={handleAddMember}
             />
+            
+            {showTaskModal && selectedTask && (
+              <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h2>{selectedTask.title}</h2>
+                    <button
+                      className="modal-close"
+                      onClick={() => setShowTaskModal(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <p className="modal-description">{selectedTask.description}</p>
+                    <div className="modal-info">
+                      <div className="info-row">
+                        <label>Deadline:</label>
+                        <span>{selectedTask.date || "No deadline"}</span>
+                      </div>
+                      <div className="info-row">
+                        <label>Assigned to:</label>
+                        <span>{selectedTask.assignee || "Unassigned"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

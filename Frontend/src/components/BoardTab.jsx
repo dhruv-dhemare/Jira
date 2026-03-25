@@ -7,11 +7,11 @@ export default function BoardTab({
   handleDragLeave,
   handleDrop,
   handleDragEnd,
+  onTaskClick,
 }) {
   const columns = [
     { key: "todo", label: "TO DO" },
-    { key: "inprogress", label: "IN PROGRESS" },
-    { key: "review", label: "REVIEW" },
+    { key: "review", label: "IN REVIEW" },
     { key: "done", label: "DONE" },
   ];
 
@@ -39,12 +39,11 @@ export default function BoardTab({
                   draggable
                   onDragStart={(e) => handleDragStart(e, card, column.key)}
                   onDragEnd={handleDragEnd}
+                  onClick={() => onTaskClick(card)}
                   className="card"
                 >
                   <div className="card-title">{card.title}</div>
-                  <div className={`card-label label-${card.label}`}>{card.label}</div>
                   <div className="card-footer">
-                    {card.points && <span className="card-points">{card.points}</span>}
                     {card.date && (
                       <span className="card-date">
                         <CalendarDays /> {card.date}
