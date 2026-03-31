@@ -207,4 +207,129 @@ router.post("/:id/add-member", verifyToken, async (req, res) => {
   }
 });
 
+// Delete member from project (master or manager only, can only delete workers)
+router.delete("/:projectId/members/:userId", verifyToken, async (req, res) => {
+  try {
+    const { projectId, userId } = req.params;
+
+    // 🔒 Authorization check - only master or manager can delete members
+    if (!["manager", "master"].includes(req.user.role)) {
+      return res.status(403).json({ error: "Only managers or masters can remove members" });
+    }
+
+    // 🔒 Verify access - user making request must be part of the project
+    const accessCheck = await pool.query(
+      `SELECT 1 FROM project_members 
+       WHERE user_id = $1 AND project_id = $2`,
+      [req.user.id, projectId]
+    );
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // Check if member exists in project and get their role
+    const memberCheck = await pool.query(
+      `SELECT role FROM project_members 
+       WHERE user_id = $1 AND project_id = $2`,
+      [userId, projectId]
+    );
+
+    if (memberCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Member not found in this project" });
+    }
+
+    // 🔒 Only allow deletion of workers
+    const memberRole = memberCheck.rows[0].role;
+    if (memberRole !== "worker") {
+      return res.status(403).json({ error: "Only workers can be removed from the project" });
+    }
+
+    // Delete the member from project
+    await pool.query(
+      `DELETE FROM project_members 
+       WHERE user_id = $1 AND project_id = $2`,
+      [userId, projectId]
+    );
+
+    res.json({ message: "Member removed successfully", userId, projectId });
+
+  } catch (err) {
+    console.error("DELETE MEMBER ERROR:", err);
+    res.status(500).json({ error: "Failed to remove member", details: err.message });
+  }
+});
+
+// Delete project (master or manager only)
+router.delete("/:id", verifyToken, async (req, res) => {
+  try {
+    const projectId = req.params.id;
+
+    // 🔒 Authorization check - only master or manager can delete
+    if (!["manager", "master"].includes(req.user.role)) {
+      return res.status(403).json({ error: "Only managers or masters can delete projects" });
+    }
+
+    // 🔒 Verify access - user must be part of the project
+    const accessCheck = await pool.query(
+      `SELECT 1 FROM project_members 
+       WHERE user_id = $1 AND project_id = $2`,
+      [req.user.id, projectId]
+    );
+
+    if (accessCheck.rows.length === 0) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    // ✅ Delete related data in correct order (foreign key constraints)
+    
+    // First, get all task IDs in this project
+    const tasksResult = await pool.query(
+      "SELECT id FROM tasks WHERE project_id = $1",
+      [projectId]
+    );
+    
+    const taskIds = tasksResult.rows.map(row => row.id);
+
+    // Delete notifications for tasks in this project (if task IDs exist)
+    if (taskIds.length > 0) {
+      await pool.query(
+        `DELETE FROM notifications 
+         WHERE task_id = ANY($1)`,
+        [taskIds]
+      );
+    }
+
+    // Delete tasks in this project
+    await pool.query(
+      "DELETE FROM tasks WHERE project_id = $1",
+      [projectId]
+    );
+
+    // Delete sprints in this project
+    await pool.query(
+      "DELETE FROM sprints WHERE project_id = $1",
+      [projectId]
+    );
+
+    // Delete project members
+    await pool.query(
+      "DELETE FROM project_members WHERE project_id = $1",
+      [projectId]
+    );
+
+    // Delete the project itself
+    await pool.query(
+      "DELETE FROM projects WHERE id = $1",
+      [projectId]
+    );
+
+    res.json({ message: "Project deleted successfully", projectId });
+
+  } catch (err) {
+    console.error("DELETE PROJECT ERROR:", err);
+    res.status(500).json({ error: "Failed to delete project", details: err.message });
+  }
+});
+
 module.exports = router;

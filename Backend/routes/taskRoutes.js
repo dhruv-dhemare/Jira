@@ -7,14 +7,18 @@ const { isProjectMember, allowProjectRoles } = require("../middleware/projectAut
 const { createNotification } = require("../utils/notifications");
 
 
-// Create task (manager OR master)
+// Create task (manager or master only)
 router.post(
   "/",
   verifyToken,
   isProjectMember,
-  allowProjectRoles("manager", "master"),
   async (req, res) => {
     const { title, description, projectId, assignedTo, deadline, sprintId } = req.body;
+
+    // 🔒 Only manager or master can create tasks
+    if (!["manager", "master"].includes(req.user.role)) {
+      return res.status(403).json({ error: "Only managers or masters can create tasks" });
+    }
 
     const task = await pool.query(
       `INSERT INTO tasks (title, description, project_id, assigned_to, created_by, deadline, sprint_id)
@@ -73,7 +77,7 @@ router.get(
   }
 );
 
-// Update task (assigned user OR master/manager)
+// Update task (manager or master only, with limited status updates for workers)
 router.put("/:taskId", verifyToken, async (req, res) => {
   const { taskId } = req.params;
   const { status, title, description, deadline, sprintId, assignedTo } = req.body;
@@ -83,13 +87,28 @@ router.put("/:taskId", verifyToken, async (req, res) => {
     [taskId]
   );
 
+  if (task.rows.length === 0) {
+    return res.status(404).json({ error: "Task not found" });
+  }
+
   const taskData = task.rows[0];
 
-  if (
-    taskData.assigned_to !== req.user.id &&
-    !["manager", "master"].includes(req.user.role)
-  ) {
-    return res.status(403).json({ error: "Not allowed to update this task" });
+  // 🔒 Authorization logic
+  if (req.user.role === "worker") {
+    // Workers can ONLY update status between "Todo" and "In Review"
+    // AND cannot update any other fields
+    const isOnlyStatusUpdate = !title && !description && !deadline && !sprintId && !assignedTo;
+    const isValidWorkerTransition = 
+      isOnlyStatusUpdate && 
+      ((status === "In Review" && taskData.status === "Todo") ||
+       (status === "Todo" && taskData.status === "In Review"));
+
+    if (!isValidWorkerTransition) {
+      return res.status(403).json({ error: "Workers can only move tasks between TODO and IN REVIEW" });
+    }
+  } else if (!["manager", "master"].includes(req.user.role)) {
+    // For non-workers who aren't manager/master, deny access
+    return res.status(403).json({ error: "You don't have permission to update tasks" });
   }
 
   const updated = await pool.query(
@@ -115,4 +134,39 @@ router.put("/:taskId", verifyToken, async (req, res) => {
 
   res.json(updated.rows[0]);
 });
+
+// Delete task (manager OR master)
+router.delete("/:taskId", verifyToken, async (req, res) => {
+  const { taskId } = req.params;
+
+  try {
+    const task = await pool.query(
+      "SELECT * FROM tasks WHERE id=$1",
+      [taskId]
+    );
+
+    if (task.rows.length === 0) {
+      return res.status(404).json({ error: "Task not found" });
+    }
+
+    const taskData = task.rows[0];
+
+    // Check authorization - only manager/master can delete
+    if (!["manager", "master"].includes(req.user.role)) {
+      return res.status(403).json({ error: "Not allowed to delete this task" });
+    }
+
+    // Delete the task
+    await pool.query("DELETE FROM tasks WHERE id=$1", [taskId]);
+
+    const io = getIO();
+    io.to(`project_${taskData.project_id}`).emit("taskDeleted", { taskId });
+
+    res.json({ message: "Task deleted successfully", taskId });
+  } catch (err) {
+    console.error("Error deleting task:", err);
+    res.status(500).json({ error: "Failed to delete task" });
+  }
+});
+
 module.exports = router;

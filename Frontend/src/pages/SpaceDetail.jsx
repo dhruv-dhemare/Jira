@@ -28,28 +28,35 @@ export default function SpaceDetail() {
   // Task detail modal state
   const [selectedTask, setSelectedTask] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [isEditingTask, setIsEditingTask] = useState(false);
+  const [editedTask, setEditedTask] = useState(null);
+  const [savingTask, setSavingTask] = useState(false);
+
+  // Current user state
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Delete project state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(false);
+
+  // Add task modal state
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [selectedColumn, setSelectedColumn] = useState(null);
+  const [newTaskForm, setNewTaskForm] = useState({
+    title: "",
+    description: "",
+    assignedTo: null,
+    deadline: "",
+    sprintId: null,
+  });
+  const [creatingTask, setCreatingTask] = useState(false);
 
   // Board data in state so it can be updated
   const [boardData, setBoardData] = useState({
-    todo: [
-      { id: 1, title: "Research motor specifications", description: "Gather specifications and datasheets for motor selection", date: "Mar 15", assignee: "AS" },
-      { id: 2, title: "Design chassis blueprint", description: "Create detailed CAD model and drawings for the robot chassis", date: "Mar 15", assignee: "MK" },
-      { id: 3, title: "Order 3D printing filament", description: "Purchase filament for 3D printing parts", date: "Mar 18", assignee: null },
-      { id: 4, title: "Write sensor integration tests", description: "Develop unit tests for sensor integration modules", date: "Mar 20", assignee: null },
-      { id: 5, title: "Design power distribution board", description: "Design PCB for power distribution and management", date: "Mar 22", assignee: "RJ" },
-      { id: 6, title: "Implement PID controller", description: "Code implementation of PID control algorithm", date: "Mar 25", assignee: null },
-    ],
-    inprogress: [
-      { id: 7, title: "Program Arduino control logic", description: "Implement main control loop and logic for Arduino", date: "Mar 28", assignee: "JD" },
-      { id: 8, title: "Solder sensor array PCB", description: "Assemble and solder all components on the PCB", date: "Mar 30", assignee: "AS" },
-    ],
-    review: [
-      { id: 9, title: "Test ultrasonic sensor accuracy", description: "Verify sensor accuracy and calibration parameters", date: "Mar 26", assignee: "MK" },
-    ],
-    done: [
-      { id: 10, title: "Set up GitHub repository", description: "Initialize repository and set up initial structure", date: "Mar 10", assignee: "JD" },
-      { id: 11, title: "Create project timeline", description: "Define milestones and timeline for the project", date: "Mar 12", assignee: "RJ" },
-    ],
+    todo: [],
+    inprogress: [],
+    review: [],
+    done: [],
   });
 
   // Drag and drop handlers
@@ -79,18 +86,55 @@ export default function SpaceDetail() {
       return;
     }
 
-    // Remove from source column
+    // Role-based restrictions for workers
+    if (currentUser && currentUser.role === "worker") {
+      // Workers can only move tasks between todo and review columns
+      const isValidMove = 
+        (draggedFrom === "todo" && toColumn === "review") || 
+        (draggedFrom === "review" && toColumn === "todo");
+      
+      if (!isValidMove) {
+        alert("Workers can only move tasks between TO DO and IN REVIEW");
+        setDraggedCard(null);
+        setDraggedFrom(null);
+        return;
+      }
+    }
+
+    // Update local state immediately (optimistic update)
     const newBoardData = { ...boardData };
     newBoardData[draggedFrom] = newBoardData[draggedFrom].filter(
       (card) => card.id !== draggedCard.id
     );
-
-    // Add to destination column
     newBoardData[toColumn] = [...newBoardData[toColumn], draggedCard];
-
     setBoardData(newBoardData);
+
+    // Map column keys to API status values
+    const statusMap = {
+      todo: "Todo",
+      inprogress: "In Progress",
+      review: "In Review",
+      done: "Done",
+    };
+
+    // Call API to update task status in backend
+    const newStatus = statusMap[toColumn];
+    updateTaskStatus(draggedCard.id, newStatus);
+
     setDraggedCard(null);
     setDraggedFrom(null);
+  };
+
+  const updateTaskStatus = async (taskId, newStatus) => {
+    try {
+      await api.put(`/tasks/${taskId}`, {
+        status: newStatus,
+      });
+    } catch (err) {
+      console.error("Error updating task status:", err);
+      // Revert the change if API fails
+      fetchTasks();
+    }
   };
 
   const handleDragEnd = (e) => {
@@ -100,8 +144,196 @@ export default function SpaceDetail() {
   };
 
   const handleTaskClick = (task) => {
-    setSelectedTask(task);
+    // Fallback for getting assignee name from members
+    let assigneeName = task.assigneeName;
+    if (!assigneeName && task.id) {
+      const assigneeObj = members.find(m => m.initials === task.assignee);
+      if (assigneeObj) {
+        assigneeName = assigneeObj.name;
+      }
+    }
+
+    setSelectedTask({
+      ...task,
+      assigneeName: assigneeName || "Unassigned",
+    });
+    
+    // Initialize editedTask with the same data
+    setEditedTask({
+      title: task.title,
+      description: task.description || "",
+      assigned_to: task.assigned_to || null,
+      deadline: task.deadline ? task.deadline.split('T')[0] : "",
+    });
+    
+    setIsEditingTask(false);
     setShowTaskModal(true);
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm("Are you sure you want to delete this task?")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/tasks/${taskId}`);
+      setShowTaskModal(false);
+      setSelectedTask(null);
+      fetchTasks(); // Refresh tasks list
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      alert("Failed to delete task. Please try again.");
+    }
+  };
+
+  const handleEditTask = async () => {
+    if (!editedTask.title.trim()) {
+      alert("Task title is required");
+      return;
+    }
+
+    try {
+      setSavingTask(true);
+
+      const response = await api.put(`/tasks/${selectedTask.id}`, {
+        title: editedTask.title,
+        description: editedTask.description,
+        assigned_to: editedTask.assigned_to,
+        deadline: editedTask.deadline || null,
+      });
+
+      // Update selectedTask with the new data
+      setSelectedTask({
+        ...selectedTask,
+        title: response.data.title,
+        description: response.data.description,
+        assigned_to: response.data.assigned_to,
+        deadline: response.data.deadline,
+      });
+
+      setIsEditingTask(false);
+      fetchTasks(); // Refresh tasks list
+      alert("Task updated successfully");
+    } catch (err) {
+      console.error("Error updating task:", err);
+      alert(err.response?.data?.error || "Failed to update task. Please try again.");
+    } finally {
+      setSavingTask(false);
+    }
+  };
+
+  const handleOpenAddTaskModal = (columnKey) => {
+    setSelectedColumn(columnKey);
+    setShowAddTaskModal(true);
+  };
+
+  const handleAddTask = async () => {
+    if (!newTaskForm.title.trim()) {
+      alert("Task title is required");
+      return;
+    }
+
+    try {
+      setCreatingTask(true);
+
+      // Map column keys to API status values
+      const statusMap = {
+        todo: "Todo",
+        inprogress: "In Progress",
+        review: "In Review",
+        done: "Done",
+      };
+
+      const response = await api.post("/tasks", {
+        title: newTaskForm.title,
+        description: newTaskForm.description,
+        projectId: id,
+        assignedTo: newTaskForm.assignedTo,
+        deadline: newTaskForm.deadline || null,
+        sprintId: newTaskForm.sprintId,
+        status: statusMap[selectedColumn],
+      });
+
+      // Reset form
+      setNewTaskForm({
+        title: "",
+        description: "",
+        assignedTo: null,
+        deadline: "",
+        sprintId: null,
+      });
+      setShowAddTaskModal(false);
+      setSelectedColumn(null);
+
+      // Refresh tasks
+      fetchTasks();
+    } catch (err) {
+      console.error("Error creating task:", err);
+      alert(err.response?.data?.error || "Failed to create task. Please try again.");
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
+  // Transform fetched tasks into board data organized by status
+  const organizeBoardData = (tasks, membersList) => {
+    const organized = {
+      todo: [],
+      inprogress: [],
+      review: [],
+      done: [],
+    };
+
+    tasks.forEach((task) => {
+      // Map API status to board column key
+      let statusKey = "todo";
+      const taskStatus = task.status || "Todo"; // Ensure we have a status value
+      
+      if (taskStatus === "In Review") statusKey = "review";
+      else if (taskStatus === "In Progress") statusKey = "inprogress";
+      else if (taskStatus === "Done") statusKey = "done";
+
+      // Find assignee initials and name
+      let assigneeInitials = null;
+      let assigneeName = null;
+      if (task.assigned_to) {
+        const assignee = membersList.find(m => m.id === task.assigned_to);
+        if (assignee) {
+          assigneeInitials = assignee.initials || null;
+          assigneeName = assignee.name || null;
+        }
+      }
+
+      // Format deadline
+      const deadline = task.deadline
+        ? new Date(task.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        : null;
+
+      // Find sprint name if task has sprint_id
+      let sprintName = null;
+      if (task.sprint_id) {
+        const sprint = sprintsData.find(s => s.id === task.sprint_id);
+        if (sprint) {
+          sprintName = sprint.name;
+        }
+      }
+
+      organized[statusKey].push({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        date: deadline,
+        assignee: assigneeInitials,
+        assigneeName: assigneeName,
+        status: taskStatus,
+        assigned_to: task.assigned_to,
+        deadline: task.deadline,
+        sprint_id: task.sprint_id,
+        sprintName: sprintName,
+      });
+    });
+
+    return organized;
   };
 
   const [projectData, setProjectData] = useState({});
@@ -164,12 +396,30 @@ export default function SpaceDetail() {
     }
   };
 
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await api.get("/users/me");
+      setCurrentUser(res.data);
+    } catch (err) {
+      console.error("Error fetching current user:", err);
+    }
+  };
+
   useEffect(() => {
+    fetchCurrentUser();
     fetchMembers();
     fetchProjectDetails();
     fetchTasks();
     fetchSprints();
   }, [id]);
+
+  // Update board data when tasks or members change
+  useEffect(() => {
+    if (tasksData.length > 0 && members.length > 0) {
+      const organized = organizeBoardData(tasksData, members);
+      setBoardData(organized);
+    }
+  }, [tasksData, members, sprintsData]);
 
   // Calculate taskStats from fetched tasks
   const taskStats = {
@@ -413,6 +663,35 @@ export default function SpaceDetail() {
     }
   };
 
+  const handleDeleteProject = async () => {
+    try {
+      setDeletingProject(true);
+      await api.delete(`/projects/${id}`);
+      alert("Project deleted successfully");
+      navigate("/spaces");
+    } catch (err) {
+      console.error("Error deleting project:", err);
+      const errorMsg = err.response?.data?.details || err.response?.data?.error || err.message || "Failed to delete project";
+      alert(`Failed to delete project: ${errorMsg}`);
+    } finally {
+      setDeletingProject(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleDeleteMember = async (memberId) => {
+    try {
+      await api.delete(`/projects/${id}/members/${memberId}`);
+      alert("Member removed successfully");
+      // Refresh members list
+      fetchMembers();
+    } catch (err) {
+      console.error("Error deleting member:", err);
+      const errorMsg = err.response?.data?.error || err.message || "Failed to remove member";
+      alert(`Failed to remove member: ${errorMsg}`);
+    }
+  };
+
   // Calculate taskAssignment grouped by assignee
   const getTaskAssignment = () => {
     const assignmentMap = {};
@@ -481,16 +760,36 @@ export default function SpaceDetail() {
             </div>
 
             {/* Tabs */}
-            <div className="tabs-container">
-              {["summary", "backlog", "sprints", "board", "calendar", "members"].map((tab) => (
+            <div className="tabs-container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "1rem" }}>
+                {["summary", "backlog", "sprints", "board", "calendar", "members"].map((tab) => (
+                  <button
+                    key={tab}
+                    className={`tab ${activeTab === tab ? "active" : ""}`}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
+              </div>
+              
+              {currentUser && ["manager", "master"].includes(currentUser.role) && (
                 <button
-                  key={tab}
-                  className={`tab ${activeTab === tab ? "active" : ""}`}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => setShowDeleteConfirm(true)}
+                  style={{
+                    padding: "0.5rem 1rem",
+                    background: "#dc2626",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  Delete Project
                 </button>
-              ))}
+              )}
             </div>
           </div>
 
@@ -517,6 +816,8 @@ export default function SpaceDetail() {
                 handleDrop={handleDrop}
                 handleDragEnd={handleDragEnd}
                 onTaskClick={handleTaskClick}
+                onAddTaskClick={handleOpenAddTaskModal}
+                currentUser={currentUser}
               />
             )}
             {activeTab === "calendar" && <CalendarTab tasksData={tasksData} />}
@@ -525,6 +826,8 @@ export default function SpaceDetail() {
                 members={members}
                 loadingMembers={loadingMembers}
                 onAddMemberClick={() => setShowModal(true)}
+                currentUser={currentUser}
+                onDeleteMember={handleDeleteMember}
               />
             )}
 
@@ -559,6 +862,447 @@ export default function SpaceDetail() {
               }}
               onCreate={handleCreateSprint}
             />
+
+            {/* Task Detail Modal */}
+            {showTaskModal && selectedTask && (
+              <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-header">
+                    {isEditingTask ? (
+                      <input
+                        type="text"
+                        value={editedTask.title}
+                        onChange={(e) =>
+                          setEditedTask({ ...editedTask, title: e.target.value })
+                        }
+                        style={{
+                          fontSize: "1.5rem",
+                          fontWeight: "bold",
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--radius-md)",
+                          padding: "0.5rem",
+                          width: "100%",
+                        }}
+                      />
+                    ) : (
+                      <h2>{selectedTask.title}</h2>
+                    )}
+                    <button
+                      className="modal-close"
+                      onClick={() => {
+                        setShowTaskModal(false);
+                        setIsEditingTask(false);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    {isEditingTask ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                        <div>
+                          <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                            Description
+                          </label>
+                          <textarea
+                            placeholder="Task description"
+                            value={editedTask.description}
+                            onChange={(e) =>
+                              setEditedTask({ ...editedTask, description: e.target.value })
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "0.75rem",
+                              border: "1px solid var(--border)",
+                              borderRadius: "var(--radius-md)",
+                              fontSize: "1rem",
+                              minHeight: "100px",
+                              fontFamily: "inherit",
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                            Assign to
+                          </label>
+                          <select
+                            value={editedTask.assigned_to || ""}
+                            onChange={(e) =>
+                              setEditedTask({
+                                ...editedTask,
+                                assigned_to: e.target.value ? parseInt(e.target.value) : null,
+                              })
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "0.75rem",
+                              border: "1px solid var(--border)",
+                              borderRadius: "var(--radius-md)",
+                              fontSize: "1rem",
+                            }}
+                          >
+                            <option value="">Unassigned</option>
+                            {members.map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                            Deadline
+                          </label>
+                          <input
+                            type="date"
+                            value={editedTask.deadline}
+                            onChange={(e) =>
+                              setEditedTask({ ...editedTask, deadline: e.target.value })
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "0.75rem",
+                              border: "1px solid var(--border)",
+                              borderRadius: "var(--radius-md)",
+                              fontSize: "1rem",
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+                          <button
+                            onClick={() => {
+                              setIsEditingTask(false);
+                              // Reset editedTask to original values
+                              setEditedTask({
+                                title: selectedTask.title,
+                                description: selectedTask.description || "",
+                                assigned_to: selectedTask.assigned_to || null,
+                                deadline: selectedTask.deadline ? selectedTask.deadline.split('T')[0] : "",
+                              });
+                            }}
+                            style={{
+                              padding: "0.75rem 1.5rem",
+                              border: "1px solid var(--border)",
+                              borderRadius: "var(--radius-md)",
+                              fontSize: "1rem",
+                              cursor: "pointer",
+                              background: "var(--bg)",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleEditTask}
+                            disabled={savingTask || !editedTask.title.trim()}
+                            style={{
+                              padding: "0.75rem 1.5rem",
+                              background: "var(--primary)",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "var(--radius-md)",
+                              fontSize: "1rem",
+                              cursor: savingTask || !editedTask.title.trim() ? "not-allowed" : "pointer",
+                              opacity: savingTask || !editedTask.title.trim() ? 0.6 : 1,
+                            }}
+                          >
+                            {savingTask ? "Saving..." : "Save Changes"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {selectedTask.description && (
+                          <p className="modal-description">{selectedTask.description}</p>
+                        )}
+                        <div className="modal-info">
+                          <div className="info-row">
+                            <label>Deadline:</label>
+                            <span>{selectedTask.date || "No deadline"}</span>
+                          </div>
+                          <div className="info-row">
+                            <label>Assigned to:</label>
+                            <span>{selectedTask.assigneeName || "Unassigned"}</span>
+                          </div>
+                          {selectedTask.sprintName && (
+                            <div className="info-row">
+                              <label>Sprint:</label>
+                              <span>{selectedTask.sprintName}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="modal-actions">
+                          {currentUser && ["manager", "master"].includes(currentUser.role) && (
+                            <button
+                              className="btn-edit"
+                              onClick={() => setIsEditingTask(true)}
+                              style={{
+                                padding: "0.75rem 1.5rem",
+                                background: "var(--primary)",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "var(--radius-md)",
+                                fontSize: "1rem",
+                                cursor: "pointer",
+                                marginRight: "0.5rem",
+                              }}
+                            >
+                              Edit Task
+                            </button>
+                          )}
+                          {currentUser && ["manager", "master"].includes(currentUser.role) && (
+                            <button
+                              className="btn-delete"
+                              onClick={() => handleDeleteTask(selectedTask.id)}
+                              style={{
+                                padding: "0.75rem 1.5rem",
+                                background: "#dc2626",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "var(--radius-md)",
+                                fontSize: "1rem",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Delete Task
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Add Task Modal */}
+            {showAddTaskModal && (
+              <div className="modal-overlay" onClick={() => setShowAddTaskModal(false)}>
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h2>Add New Task</h2>
+                    <button
+                      className="modal-close"
+                      onClick={() => setShowAddTaskModal(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                          Title *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Task title"
+                          value={newTaskForm.title}
+                          onChange={(e) =>
+                            setNewTaskForm({ ...newTaskForm, title: e.target.value })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius-md)",
+                            fontSize: "1rem",
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                          Description
+                        </label>
+                        <textarea
+                          placeholder="Task description"
+                          value={newTaskForm.description}
+                          onChange={(e) =>
+                            setNewTaskForm({ ...newTaskForm, description: e.target.value })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius-md)",
+                            fontSize: "1rem",
+                            minHeight: "100px",
+                            fontFamily: "inherit",
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                          Assign to
+                        </label>
+                        <select
+                          value={newTaskForm.assignedTo || ""}
+                          onChange={(e) =>
+                            setNewTaskForm({
+                              ...newTaskForm,
+                              assignedTo: e.target.value ? parseInt(e.target.value) : null,
+                            })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius-md)",
+                            fontSize: "1rem",
+                          }}
+                        >
+                          <option value="">Unassigned</option>
+                          {members.map((member) => (
+                            <option key={member.id} value={member.id}>
+                              {member.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                          Deadline
+                        </label>
+                        <input
+                          type="date"
+                          value={newTaskForm.deadline}
+                          onChange={(e) =>
+                            setNewTaskForm({ ...newTaskForm, deadline: e.target.value })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius-md)",
+                            fontSize: "1rem",
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", marginBottom: "0.5rem", fontWeight: 600 }}>
+                          Sprint
+                        </label>
+                        <select
+                          value={newTaskForm.sprintId || ""}
+                          onChange={(e) =>
+                            setNewTaskForm({
+                              ...newTaskForm,
+                              sprintId: e.target.value ? parseInt(e.target.value) : null,
+                            })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius-md)",
+                            fontSize: "1rem",
+                          }}
+                        >
+                          <option value="">None</option>
+                          {sprintsData.map((sprint) => (
+                            <option key={sprint.id} value={sprint.id}>
+                              {sprint.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+                        <button
+                          onClick={() => setShowAddTaskModal(false)}
+                          style={{
+                            padding: "0.75rem 1.5rem",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--radius-md)",
+                            fontSize: "1rem",
+                            cursor: "pointer",
+                            background: "var(--bg)",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleAddTask}
+                          disabled={creatingTask || !newTaskForm.title.trim()}
+                          style={{
+                            padding: "0.75rem 1.5rem",
+                            background: "var(--primary)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "var(--radius-md)",
+                            fontSize: "1rem",
+                            cursor: creatingTask || !newTaskForm.title.trim() ? "not-allowed" : "pointer",
+                            opacity: creatingTask || !newTaskForm.title.trim() ? 0.6 : 1,
+                          }}
+                        >
+                          {creatingTask ? "Creating..." : "Create Task"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Delete Project Confirmation Modal */}
+            {showDeleteConfirm && (
+              <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h2>Delete Project</h2>
+                    <button
+                      className="modal-close"
+                      onClick={() => setShowDeleteConfirm(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="modal-body">
+                    <p>
+                      Are you sure you want to delete <strong>{projectData.name}</strong>? 
+                      This will delete all tasks, sprints, and associated data. This action cannot be undone.
+                    </p>
+                    <div className="modal-actions" style={{ marginTop: "2rem", display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        style={{
+                          padding: "0.75rem 1.5rem",
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--radius-md)",
+                          fontSize: "1rem",
+                          cursor: "pointer",
+                          background: "var(--bg)",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleDeleteProject}
+                        disabled={deletingProject}
+                        style={{
+                          padding: "0.75rem 1.5rem",
+                          background: "#dc2626",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "var(--radius-md)",
+                          fontSize: "1rem",
+                          cursor: deletingProject ? "not-allowed" : "pointer",
+                          opacity: deletingProject ? 0.6 : 1,
+                        }}
+                      >
+                        {deletingProject ? "Deleting..." : "Delete Project"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

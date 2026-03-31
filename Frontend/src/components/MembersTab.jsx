@@ -1,10 +1,16 @@
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 
-export default function MembersTab({ members, loadingMembers, onAddMemberClick }) {
+export default function MembersTab({ members, loadingMembers, onAddMemberClick, currentUser, onDeleteMember }) {
   const getAvatar = (url) => {
     if (!url) return null;
     // Transform Google profile image size parameter if present
     return url.replace(/=s\d+-c$/, "=s200-c");
+  };
+
+  const handleDeleteMember = (memberId) => {
+    if (window.confirm("Are you sure you want to remove this member from the project?")) {
+      onDeleteMember(memberId);
+    }
   };
 
   return (
@@ -42,6 +48,17 @@ export default function MembersTab({ members, loadingMembers, onAddMemberClick }
 
               {/* Role */}
               <div className="member-role">{member.role}</div>
+
+              {/* Delete Button (only for managers and masters, and only for worker members) */}
+              {currentUser && ["manager", "master"].includes(currentUser.role) && member.role === "worker" && (
+                <button
+                  className="member-delete-btn"
+                  onClick={() => handleDeleteMember(member.id)}
+                  title="Remove member"
+                >
+                  <Trash2 size="1rem" />
+                </button>
+              )}
             </div>
           ))
         )}

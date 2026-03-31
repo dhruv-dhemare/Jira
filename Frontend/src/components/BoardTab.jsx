@@ -8,6 +8,8 @@ export default function BoardTab({
   handleDrop,
   handleDragEnd,
   onTaskClick,
+  onAddTaskClick,
+  currentUser,
 }) {
   const columns = [
     { key: "todo", label: "TO DO" },
@@ -32,6 +34,9 @@ export default function BoardTab({
               </span>
               <button className="column-menu">⋯</button>
             </div>
+            {column.key === "todo" && currentUser && ["manager", "master"].includes(currentUser.role) && (
+              <button className="add-card-btn" onClick={() => onAddTaskClick(column.key)}>+ Add task</button>
+            )}
             <div className="cards-container">
               {boardData[column.key].map((card) => (
                 <div
@@ -43,6 +48,9 @@ export default function BoardTab({
                   className="card"
                 >
                   <div className="card-title">{card.title}</div>
+                  {card.sprintName && (
+                    <div className="card-sprint-tag">{card.sprintName}</div>
+                  )}
                   <div className="card-footer">
                     {card.date && (
                       <span className="card-date">
@@ -55,7 +63,6 @@ export default function BoardTab({
                   </div>
                 </div>
               ))}
-              <button className="add-card-btn">+ Add task</button>
             </div>
           </div>
         ))}
