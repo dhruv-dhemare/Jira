@@ -899,7 +899,34 @@
   height: 100%;
   overflow-x: hidden;
   display: flex;
+  flex-direction: column;
   width: 70%;
+}
+
+.board-filter {
+  padding: 1vh 0.9vh;
+  display: flex;
+  align-items: center;
+  gap: 0.8vh;
+  border-bottom: var(--line) solid #e5e7eb;
+}
+
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6vh;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #475569;
+  font-weight: 500;
+  user-select: none;
+}
+
+.filter-toggle input[type="checkbox"] {
+  cursor: pointer;
+  width: 1.1vh;
+  height: 2vh;
+  accent-color: var(--primary);
 }
 
 .board-grid {
@@ -1286,9 +1313,9 @@
 
 .event-indicator {
   font-size: clamp(0.9vh, 0.75vw, 1.1vh);
-  color: white;
+  color: blue;
   padding: 0.4vh 0.6vh;
-  background: var(--primary);
+  background-color: #e3f2f9;
   border-radius: var(--radius-sm);
   overflow: hidden;
   text-overflow: ellipsis;

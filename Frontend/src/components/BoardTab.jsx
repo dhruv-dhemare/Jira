@@ -1,4 +1,5 @@
 import { CalendarDays } from "lucide-react";
+import { useState } from "react";
 
 export default function BoardTab({
   boardData,
@@ -11,14 +12,35 @@ export default function BoardTab({
   onAddTaskClick,
   currentUser,
 }) {
+  const [showAssignedToMe, setShowAssignedToMe] = useState(false);
+
   const columns = [
     { key: "todo", label: "TO DO" },
     { key: "review", label: "IN REVIEW" },
     { key: "done", label: "DONE" },
   ];
 
+  // Filter board data based on filter selection
+  const filteredBoardData = showAssignedToMe
+    ? {
+        todo: boardData.todo.filter(card => card.assigned_to === currentUser?.id),
+        review: boardData.review.filter(card => card.assigned_to === currentUser?.id),
+        done: boardData.done.filter(card => card.assigned_to === currentUser?.id),
+      }
+    : boardData;
+
   return (
     <div className="tab-content board-content">
+      <div className="board-filter">
+        <label className="filter-toggle">
+          <input
+            type="checkbox"
+            checked={showAssignedToMe}
+            onChange={(e) => setShowAssignedToMe(e.target.checked)}
+          />
+          <span>Assigned to me</span>
+        </label>
+      </div>
       <div className="board-grid">
         {columns.map((column) => (
           <div
@@ -30,7 +52,7 @@ export default function BoardTab({
           >
             <div className="column-header">
               <span className="column-label">
-                {column.label} <span className="column-count">{boardData[column.key].length}</span>
+                {column.label} <span className="column-count">{filteredBoardData[column.key].length}</span>
               </span>
               <button className="column-menu">⋯</button>
             </div>
@@ -38,7 +60,7 @@ export default function BoardTab({
               <button className="add-card-btn" onClick={() => onAddTaskClick(column.key)}>+ Add task</button>
             )}
             <div className="cards-container">
-              {boardData[column.key].map((card) => (
+              {filteredBoardData[column.key].map((card) => (
                 <div
                   key={card.id}
                   draggable
