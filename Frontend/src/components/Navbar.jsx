@@ -31,7 +31,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="logo">
         <Bot className="logo-icon" />
-        <span>RoboManage</span>
+        <span>SprintHub</span>
       </div>
 
       {!token ? (
