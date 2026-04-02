@@ -12,7 +12,7 @@ const server = http.createServer(app);
 // 🔥 CORS MIDDLEWARE (VERY IMPORTANT)
 app.use(
   cors({
-    origin: "https://sprint-hub.netlify.app/",
+    origin: "https://sprint-hub.netlify.app",
     credentials: true,
   })
 );
