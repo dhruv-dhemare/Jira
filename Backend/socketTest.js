@@ -1,6 +1,6 @@
 const { io } = require("socket.io-client");
 
-const socket = io("http://localhost:5000", {
+const socket = io("https://jira-mul1.onrender.com", {
   auth: {
     token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6Im1hbmFnZXIiLCJpYXQiOjE3NzM5MTk2NjQsImV4cCI6MTc3NDAwNjA2NH0.4xnKf9UIdMmWZ0lXRCORBkMFuR9hcZvwa2MM2bUPaJs", // 🔥 REQUIRED
   },
