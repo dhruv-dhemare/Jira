@@ -11,7 +11,7 @@ export default function Hero() {
       <button
         className="cta-btn"
         onClick={() =>
-          (window.location.href = "https://sprint-hub.netlify.app/auth/google")
+          (window.location.href = "https://jira-mul1.onrender.com/auth/google")
         }
       >
         Get Started

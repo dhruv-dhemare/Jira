@@ -9,7 +9,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const cleanAvatar = user?.avatar?.replace(/=s\d+-c$/, "=s200-c");
   const handleLogin = () => {
-    window.location.href = "https://sprint-hub.netlify.app/auth/google";
+    window.location.href = "https://jira-mul1.onrender.com/auth/google";
   };
 
   useEffect(() => {
