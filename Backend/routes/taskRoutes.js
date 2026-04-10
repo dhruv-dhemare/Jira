@@ -21,9 +21,9 @@ router.post(
     }
 
     const task = await pool.query(
-      `INSERT INTO tasks (title, description, project_id, assigned_to, created_by, deadline, sprint_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [title, description, projectId, assignedTo, req.user.id, deadline, sprintId]
+      `INSERT INTO tasks (title, description, project_id, assigned_to, created_by, deadline, sprint_id, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [title, description, projectId, assignedTo, req.user.id, deadline, sprintId, 'Todo']
     );
     
     const io = getIO();
@@ -80,7 +80,7 @@ router.get(
 // Update task (manager or master only, with limited status updates for workers)
 router.put("/:taskId", verifyToken, async (req, res) => {
   const { taskId } = req.params;
-  const { status, title, description, deadline, sprintId, assignedTo } = req.body;
+  const { status = 'Todo', title, description, deadline, sprintId, assignedTo } = req.body;
 
   const task = await pool.query(
     "SELECT * FROM tasks WHERE id=$1",

@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Landing from "./pages/Landing";
 import Spaces from "./pages/Spaces";
 import SpaceDetail from "./pages/SpaceDetail";
@@ -12,14 +12,21 @@ import ProtectedRoute from "./components/ProtectedRoute";
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
 
+  useEffect(() => {
+    // Listen for storage changes (logout from other tabs/windows)
+    const handleStorageChange = () => {
+      setToken(localStorage.getItem("token"));
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   return (
     <Router>
       <Routes>
-        {/* 🔥 Root route logic */}
-        <Route
-          path="/"
-          element={token ? <Navigate to="/spaces" /> : <Landing />}
-        />
+        {/* Landing page - always accessible */}
+        <Route path="/" element={<Landing />} />
         <Route
           path="/spaces"
           element={
