@@ -425,70 +425,87 @@ export default function SpaceDetail() {
   // Real-time updates via WebSocket
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket) {
+      console.warn("⚠️ Socket not initialized");
+      return;
+    }
 
-    // Join project room
-    socket.emit("joinProject", { projectId: id }, (response) => {
-      if (response?.error) {
-        console.error("Error joining project:", response.error);
-      } else {
-        console.log("✅ Joined project room:", id);
-      }
-    });
+    // Wait for socket to be connected before joining
+    const joinProject = () => {
+      socket.emit("joinProject", { projectId: id }, (response) => {
+        if (response?.error) {
+          console.error("❌ Error joining project:", response.error);
+        } else {
+          console.log("✅ Successfully joined project room:", id);
+        }
+      });
+    };
+
+    // Join immediately if already connected, otherwise wait
+    if (socket.connected) {
+      joinProject();
+    } else {
+      socket.once("connect", joinProject);
+    }
 
     // Task Created
-    const handleTaskCreated = (taskData) => {
-      console.log("📝 Task created:", taskData);
+    const handleTaskCreated = (eventData) => {
+      console.log("📝 Task created event received:", eventData);
       fetchTasks();
     };
 
     // Task Updated
-    const handleTaskUpdated = (updatedTask) => {
-      console.log("✏️ Task updated:", updatedTask);
+    const handleTaskUpdated = (eventData) => {
+      console.log("✏️ Task updated event received:", eventData);
+      // Handle both formats: {data: task} or just task
+      const updatedTask = eventData.data || eventData;
       setTasksData(prev =>
         prev.map(t => t.id === updatedTask.id ? updatedTask : t)
       );
     };
 
     // Task Deleted
-    const handleTaskDeleted = ({ taskId }) => {
-      console.log("🗑️ Task deleted:", taskId);
+    const handleTaskDeleted = (eventData) => {
+      console.log("🗑️ Task deleted event received:", eventData);
+      const taskId = eventData.taskId || eventData;
       setTasksData(prev => prev.filter(t => t.id !== taskId));
     };
 
     // Sprint Created
-    const handleSprintCreated = (sprintData) => {
-      console.log("➕ Sprint created:", sprintData);
+    const handleSprintCreated = (eventData) => {
+      console.log("➕ Sprint created event received:", eventData);
       fetchSprints();
     };
 
     // Sprint Updated
-    const handleSprintUpdated = (updatedSprint) => {
-      console.log("✏️ Sprint updated:", updatedSprint);
+    const handleSprintUpdated = (eventData) => {
+      console.log("✏️ Sprint updated event received:", eventData);
+      const updatedSprint = eventData.data || eventData;
       setSprintsData(prev =>
         prev.map(s => s.id === updatedSprint.id ? updatedSprint : s)
       );
     };
 
     // Sprint Deleted
-    const handleSprintDeleted = ({ sprintId }) => {
-      console.log("🗑️ Sprint deleted:", sprintId);
+    const handleSprintDeleted = (eventData) => {
+      console.log("🗑️ Sprint deleted event received:", eventData);
+      const sprintId = eventData.sprintId || eventData;
       setSprintsData(prev => prev.filter(s => s.id !== sprintId));
     };
 
     // Member Added
-    const handleMemberAdded = ({ userId }) => {
-      console.log("👤 Member added:", userId);
+    const handleMemberAdded = (eventData) => {
+      console.log("👤 Member added event received:", eventData);
       fetchMembers();
     };
 
     // Member Role Changed
-    const handleMemberRoleChanged = ({ userId, role }) => {
-      console.log("👑 Member role changed:", userId, "=>", role);
+    const handleMemberRoleChanged = (eventData) => {
+      console.log("👑 Member role changed event received:", eventData);
       fetchMembers();
     };
 
-    // Subscribe to events
+    // Subscribe to all events
     socket.on("taskCreated", handleTaskCreated);
     socket.on("taskUpdated", handleTaskUpdated);
     socket.on("taskDeleted", handleTaskDeleted);
@@ -498,8 +515,11 @@ export default function SpaceDetail() {
     socket.on("memberAdded", handleMemberAdded);
     socket.on("memberRoleChanged", handleMemberRoleChanged);
 
+    console.log("🔌 Socket listeners registered for project:", id);
+
     // Cleanup - unsubscribe from events and leave room
     return () => {
+      console.log("🧹 Cleaning up socket listeners for project:", id);
       socket.off("taskCreated", handleTaskCreated);
       socket.off("taskUpdated", handleTaskUpdated);
       socket.off("taskDeleted", handleTaskDeleted);

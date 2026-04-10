@@ -130,6 +130,7 @@ router.put("/:taskId", verifyToken, async (req, res) => {
   );
 
   const io = getIO();
+  console.log(`📡 Broadcasting taskUpdated to project_${taskData.project_id} - Task ID:`, updated.rows[0].id);
   io.to(`project_${taskData.project_id}`).emit("taskUpdated", updated.rows[0]);
 
   res.json(updated.rows[0]);

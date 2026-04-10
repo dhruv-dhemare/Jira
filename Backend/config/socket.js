@@ -44,12 +44,16 @@ const initSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    console.log("🔐 Authenticated user:", socket.user);
+    console.log("✅ Socket connected - User:", socket.user?.email, "Socket ID:", socket.id);
 
     registerHandlers(io, socket);
 
     socket.on("disconnect", () => {
-      console.log("❌ Disconnected:", socket.id);
+      console.log("❌ Disconnected - User:", socket.user?.email, "Socket ID:", socket.id);
+    });
+    
+    socket.on("error", (error) => {
+      console.error("Socket error for user", socket.user?.email, ":", error);
     });
   });
 

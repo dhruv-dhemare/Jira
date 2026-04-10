@@ -8,14 +8,16 @@ module.exports = (io, socket) => {
     try {
       const projectId = data?.projectId || data;
       
+      console.log(`👥 User ${socket.user.email} attempting to join project: ${projectId}`);
+      
       const result = await pool.query(
         "SELECT * FROM project_members WHERE user_id=$1 AND project_id=$2",
         [socket.user.id, projectId]
       );
 
       if (result.rows.length === 0) {
-        const error = "Not a project member";
-        console.error(error);
+        const error = "User is not a project member";
+        console.error(`❌ ${error} - User: ${socket.user.email}, Project: ${projectId}`);
         if (callback) callback({ error });
         return socket.emit("error", error);
       }
@@ -25,10 +27,10 @@ module.exports = (io, socket) => {
       
       // Send success callback
       if (callback) callback({ success: true });
-      console.log(`✅ User ${socket.user.id} joined project room: project_${projectId}`);
+      console.log(`✅ User ${socket.user.email} successfully joined project room: project_${projectId}`);
 
     } catch (err) {
-      console.error("Join project error:", err);
+      console.error("❌ Join project error:", err.message);
       if (callback) callback({ error: "Server error" });
       socket.emit("error", "Server error");
     }
@@ -39,9 +41,9 @@ module.exports = (io, socket) => {
     try {
       const projectId = data?.projectId || data;
       socket.leave(`project_${projectId}`);
-      console.log(`👋 User ${socket.user.id} left project room: project_${projectId}`);
+      console.log(`👋 User ${socket.user.email} left project room: project_${projectId}`);
     } catch (err) {
-      console.error("Leave project error:", err);
+      console.error("❌ Leave project error:", err);
     }
   });
 
@@ -50,7 +52,7 @@ module.exports = (io, socket) => {
 
     socket.join(`user_${userId}`);
 
-    console.log(`👤 User ${userId} joined personal room`);
+    console.log(`👤 User ${socket.user.email} joined personal notification room: user_${userId}`);
   });
 
 };
