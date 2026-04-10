@@ -6,30 +6,38 @@ let io;
 
 const initSocket = (server) => {
   // Get allowed origins from environment or use defaults
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean);
+  let allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map(o => o.trim()).filter(Boolean);
   
-  // Add default local development origins
+  // Add default origins if none provided
   if (allowedOrigins.length === 0) {
-    allowedOrigins.push(
-      "http://localhost:5173",  // Vite default
-      "http://localhost:3000",  // Alternative dev port
-      "http://127.0.0.1:5173"
-    );
+    allowedOrigins = [
+      "https://sprint-hub.netlify.app",      // Production
+      "http://localhost:5173",               // Vite dev
+      "http://localhost:3000",               // Alternative dev
+      "http://127.0.0.1:5173",              // Loopback
+    ];
+  } else {
+    // Always include production URL
+    if (!allowedOrigins.includes("https://sprint-hub.netlify.app")) {
+      allowedOrigins.push("https://sprint-hub.netlify.app");
+    }
   }
 
-  console.log("🔒 Socket CORS allowed origins:", allowedOrigins);
+  console.log("🔒 Socket.IO CORS allowed origins:", allowedOrigins);
 
   io = new Server(server, {
     cors: {
       origin: allowedOrigins,
       methods: ["GET", "POST"],
       credentials: true,
-      allowEIO3: true, // Support Engine.IO 3 clients
+      allowEIO3: true,
+      allowEIO4: true,  // Support both Engine.IO versions
     },
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     reconnectionAttempts: 5,
+    transports: ["websocket", "polling"],  // Support both connection types (Brave/Edge fallback)
   });
 
   // 🔐 AUTH MIDDLEWARE
