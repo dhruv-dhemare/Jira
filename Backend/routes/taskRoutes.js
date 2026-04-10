@@ -123,11 +123,14 @@ router.put("/:taskId", verifyToken, async (req, res) => {
     [status, title, description, deadline, sprintId, assigned_to, taskId]
   );
   
-  await createNotification(
-    taskData.assigned_to,
-    "Your task status was updated",
-    "TASK_UPDATED"
-  );
+  // Notify new assignee if assignment changed
+  if (assigned_to && assigned_to !== taskData.assigned_to) {
+    await createNotification(
+      assigned_to,
+      "You have been assigned a task",
+      "TASK_ASSIGNED"
+    );
+  }
 
   const io = getIO();
   console.log(`📡 Broadcasting taskUpdated to project_${taskData.project_id} - Task ID:`, updated.rows[0].id);
