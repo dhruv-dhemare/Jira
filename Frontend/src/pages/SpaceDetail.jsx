@@ -436,139 +436,149 @@ export default function SpaceDetail() {
 
   // Real-time updates via WebSocket
   useEffect(() => {
-    const socket = getSocket();
+    let socket = getSocket();
+    
+    // If socket not ready yet, wait for it
     if (!socket) {
-      console.warn("⚠️ Socket not initialized");
-      return;
-    }
-
-    // Wait for socket to be connected before joining
-    const joinProject = () => {
-      console.log("📍 Attempting to join project room:", id);
-      socket.emit("joinProject", { projectId: id }, (response) => {
-        console.log("📍 joinProject callback response:", response);
-        if (response?.error) {
-          console.error("❌ Error joining project:", response.error);
-        } else if (response?.success) {
-          console.log("✅ Successfully joined project room:", id);
-        } else {
-          console.log("⚠️ No clear response, but proceeding");
+      console.log("⏳ Socket not ready yet, setting up pollfor connection");
+      const checkSocket = setInterval(() => {
+        socket = getSocket();
+        if (socket?.connected) {
+          console.log("✅ Socket is now ready, clearing interval");
+          clearInterval(checkSocket);
+          setupSocketListeners(socket);
         }
-      });
-    };
-
-    // Join immediately if already connected, otherwise wait
-    if (socket.connected) {
-      console.log("🔌 Socket already connected, joining project immediately");
-      joinProject();
-    } else {
-      console.log("🔌 Socket not connected yet, waiting for connect event");
-      socket.once("connect", () => {
-        console.log("🔌 Socket connected event fired, now joining project");
-        joinProject();
-      });
+      }, 100);
+      
+      return () => clearInterval(checkSocket);
     }
 
-    // Task Created
-    const handleTaskCreated = (eventData) => {
-      console.log("📝 Task created event received:", eventData);
-      fetchTasks();
-    };
+    // Socket exists, set up listeners
+    const cleanup = setupSocketListeners(socket);
+    return cleanup;
 
-    // Task Updated
-    const handleTaskUpdated = (eventData) => {
-      console.log("✏️ Task updated event received:", eventData);
-      // Handle both formats: {data: task} or just task
-      const updatedTask = eventData.data || eventData;
-      console.log("🔄 Updating task in state:", updatedTask.id, "Status:", updatedTask.status);
+    function setupSocketListeners(socket) {
+      console.log("🔌 Setting up socket listeners for project:", id);
       
-      setTasksData(prev => {
-        const updated = prev.map(t => {
-          if (t.id === updatedTask.id) {
-            console.log("✅ Found task to update, replacing with new data");
-            return updatedTask;
-          }
-          return t;
+      // Define all handlers
+      const handleTaskCreated = (eventData) => {
+        console.log("📝 Task created event received:", eventData);
+        fetchTasks();
+      };
+
+      const handleTaskUpdated = (eventData) => {
+        console.log("✏️ Task updated event received:", eventData);
+        const updatedTask = eventData.data || eventData;
+        console.log("🔄 Updating task in state:", updatedTask.id, "Status:", updatedTask.status);
+        
+        setTasksData(prev => {
+          const updated = prev.map(t => {
+            if (t.id === updatedTask.id) {
+              console.log("✅ Found task to update, replacing with new data");
+              return updatedTask;
+            }
+            return t;
+          });
+          console.log("📝 Updated tasks array, new length:", updated.length);
+          return updated;
         });
-        console.log("📝 Updated tasks array, new length:", updated.length);
-        return updated;
-      });
-    };
+      };
 
-    // Task Deleted
-    const handleTaskDeleted = (eventData) => {
-      console.log("🗑️ Task deleted event received:", eventData);
-      const taskId = eventData.taskId || eventData;
-      setTasksData(prev => prev.filter(t => t.id !== taskId));
-    };
+      const handleTaskDeleted = (eventData) => {
+        console.log("🗑️ Task deleted event received:", eventData);
+        const taskId = eventData.taskId || eventData;
+        setTasksData(prev => prev.filter(t => t.id !== taskId));
+      };
 
-    // Sprint Created
-    const handleSprintCreated = (eventData) => {
-      console.log("➕ Sprint created event received:", eventData);
-      fetchSprints();
-    };
+      const handleSprintCreated = (eventData) => {
+        console.log("➕ Sprint created event received:", eventData);
+        fetchSprints();
+      };
 
-    // Sprint Updated
-    const handleSprintUpdated = (eventData) => {
-      console.log("✏️ Sprint updated event received:", eventData);
-      const updatedSprint = eventData.data || eventData;
-      setSprintsData(prev =>
-        prev.map(s => s.id === updatedSprint.id ? updatedSprint : s)
-      );
-    };
+      const handleSprintUpdated = (eventData) => {
+        console.log("✏️ Sprint updated event received:", eventData);
+        const updatedSprint = eventData.data || eventData;
+        setSprintsData(prev =>
+          prev.map(s => s.id === updatedSprint.id ? updatedSprint : s)
+        );
+      };
 
-    // Sprint Deleted
-    const handleSprintDeleted = (eventData) => {
-      console.log("🗑️ Sprint deleted event received:", eventData);
-      const sprintId = eventData.sprintId || eventData;
-      setSprintsData(prev => prev.filter(s => s.id !== sprintId));
-    };
+      const handleSprintDeleted = (eventData) => {
+        console.log("🗑️ Sprint deleted event received:", eventData);
+        const sprintId = eventData.sprintId || eventData;
+        setSprintsData(prev => prev.filter(s => s.id !== sprintId));
+      };
 
-    // Member Added
-    const handleMemberAdded = (eventData) => {
-      console.log("👤 Member added event received:", eventData);
-      fetchMembers();
-    };
+      const handleMemberAdded = (eventData) => {
+        console.log("👤 Member added event received:", eventData);
+        fetchMembers();
+      };
 
-    // Member Role Changed
-    const handleMemberRoleChanged = (eventData) => {
-      console.log("👑 Member role changed event received:", eventData);
-      fetchMembers();
-    };
+      const handleMemberRoleChanged = (eventData) => {
+        console.log("👑 Member role changed event received:", eventData);
+        fetchMembers();
+      };
 
-    // Subscribe to all events
-    socket.on("taskCreated", handleTaskCreated);
-    socket.on("taskUpdated", handleTaskUpdated);
-    socket.on("taskDeleted", handleTaskDeleted);
-    socket.on("sprintCreated", handleSprintCreated);
-    socket.on("sprintUpdated", handleSprintUpdated);
-    socket.on("sprintDeleted", handleSprintDeleted);
-    socket.on("memberAdded", handleMemberAdded);
-    socket.on("memberRoleChanged", handleMemberRoleChanged);
+      // Join project room
+      const joinProject = () => {
+        console.log("📍 Attempting to join project room:", id);
+        socket.emit("joinProject", { projectId: id }, (response) => {
+          console.log("📍 joinProject callback response:", response);
+          if (response?.error) {
+            console.error("❌ Error joining project:", response.error);
+          } else if (response?.success) {
+            console.log("✅ Successfully joined project room:", id);
+          } else {
+            console.log("⚠️ No clear response, but proceeding");
+          }
+        });
+      };
 
-    console.log("🔌 Socket listeners registered for project:", id);
-    console.log("   - taskCreated ✅");
-    console.log("   - taskUpdated ✅");
-    console.log("   - taskDeleted ✅");
-    console.log("   - sprintCreated ✅");
-    console.log("   - sprintUpdated ✅");
-    console.log("   - sprintDeleted ✅");
-    console.log("   - memberAdded ✅");
-    console.log("   - memberRoleChanged ✅");
+      if (socket.connected) {
+        console.log("🔌 Socket already connected, joining project immediately");
+        joinProject();
+      } else {
+        console.log("🔌 Socket not connected yet, waiting for connect event");
+        socket.once("connect", () => {
+          console.log("🔌 Socket connected event fired, now joining project");
+          joinProject();
+        });
+      }
 
-    // Cleanup - unsubscribe from events and leave room
-    return () => {
-      console.log("🧹 Cleaning up socket listeners for project:", id);
-      socket.off("taskCreated", handleTaskCreated);
-      socket.off("taskUpdated", handleTaskUpdated);
-      socket.off("taskDeleted", handleTaskDeleted);
-      socket.off("sprintCreated", handleSprintCreated);
-      socket.off("sprintUpdated", handleSprintUpdated);
-      socket.off("sprintDeleted", handleSprintDeleted);
-      socket.off("memberAdded", handleMemberAdded);
-      socket.off("memberRoleChanged", handleMemberRoleChanged);
-      socket.emit("leaveProject", { projectId: id });
-    };
+      // Register all event listeners
+      socket.on("taskCreated", handleTaskCreated);
+      socket.on("taskUpdated", handleTaskUpdated);
+      socket.on("taskDeleted", handleTaskDeleted);
+      socket.on("sprintCreated", handleSprintCreated);
+      socket.on("sprintUpdated", handleSprintUpdated);
+      socket.on("sprintDeleted", handleSprintDeleted);
+      socket.on("memberAdded", handleMemberAdded);
+      socket.on("memberRoleChanged", handleMemberRoleChanged);
+
+      console.log("🔌 Socket listeners registered for project:", id);
+      console.log("   - taskCreated ✅");
+      console.log("   - taskUpdated ✅");
+      console.log("   - taskDeleted ✅");
+      console.log("   - sprintCreated ✅");
+      console.log("   - sprintUpdated ✅");
+      console.log("   - sprintDeleted ✅");
+      console.log("   - memberAdded ✅");
+      console.log("   - memberRoleChanged ✅");
+
+      // Return cleanup function
+      return () => {
+        console.log("🧹 Cleaning up socket listeners for project:", id);
+        socket.off("taskCreated", handleTaskCreated);
+        socket.off("taskUpdated", handleTaskUpdated);
+        socket.off("taskDeleted", handleTaskDeleted);
+        socket.off("sprintCreated", handleSprintCreated);
+        socket.off("sprintUpdated", handleSprintUpdated);
+        socket.off("sprintDeleted", handleSprintDeleted);
+        socket.off("memberAdded", handleMemberAdded);
+        socket.off("memberRoleChanged", handleMemberRoleChanged);
+        socket.emit("leaveProject", { projectId: id });
+      };
+    }
   }, [id]);
 
   // Calculate taskStats from fetched tasks
