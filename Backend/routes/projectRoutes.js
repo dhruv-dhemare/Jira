@@ -172,15 +172,16 @@ router.get("/:projectId/members", verifyToken, async (req, res) => {
 router.post("/:id/add-member", verifyToken, async (req, res) => {
   try {
     const projectId = req.params.id;
-    const { email,role } = req.body;
+    const { email, role } = req.body;
 
+    console.log(`🔍 Add member request: email=${email}, role=${role}, projectId=${projectId}`);
 
     // Safety check
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Check role
+    // Check role - only manager can add members
     if (req.user.role !== "manager") {
       return res.status(403).json({ message: "Only managers can add members" });
     }
@@ -196,19 +197,50 @@ router.post("/:id/add-member", verifyToken, async (req, res) => {
     }
 
     const user = userResult.rows[0];
+    console.log(`📋 Found user:`, user.id, user.email, "Current role:", user.role);
 
     // Add to project
-    await pool.query(
+    const insertResult = await pool.query(
       `INSERT INTO project_members (project_id, user_id, role, assigned_by)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT DO NOTHING`,
+       ON CONFLICT (project_id, user_id) DO UPDATE SET role=$3
+       RETURNING *`,
       [projectId, user.id, role, req.user.id]
     );
+    console.log(`✅ Added/Updated project_members:`, insertResult.rows[0]);
 
-    res.json({ message: "Member added successfully", user });
+    // If role is "master", update global user role to master
+    let globalRoleUpdated = false;
+    if (role === "master") {
+      console.log(`🔄 Role is master, updating global user role...`);
+      const updateResult = await pool.query(
+        "UPDATE users SET role=$1 WHERE id=$2 RETURNING id, email, role",
+        ["master", user.id]
+      );
+      console.log(`✅ Updated user global role to master:`, updateResult.rows[0]);
+      globalRoleUpdated = true;
+    }
+
+    // Broadcast updates
+    const io = require("../config/socket").getIO();
+    if (globalRoleUpdated) {
+      io.to(`user_${user.id}`).emit("userRoleChanged", {
+        userId: user.id,
+        oldRole: user.role,
+        newRole: "master",
+        message: "Your role has been updated to Master"
+      });
+      console.log(`📡 Broadcasted userRoleChanged`);
+    }
+
+    res.json({ 
+      message: "Member added successfully", 
+      user: { ...user, role },
+      globalRoleUpdated
+    });
 
   } catch (err) {
-    console.error("ADD MEMBER ERROR:", err);
+    console.error("❌ ADD MEMBER ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 });

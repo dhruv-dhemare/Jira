@@ -745,7 +745,17 @@ export default function SpaceDetail() {
     try {
       setAdding(true);
 
-      await api.post(`/projects/${id}/add-member`, { email ,role});
+      console.log(`🔍 Add member request: email=${email}, role=${role}, projectId=${id}`);
+      const response = await api.post(`/projects/${id}/add-member`, { email, role });
+      
+      console.log(`✅ Add member response:`, response.data);
+      if (response.data.globalRoleUpdated) {
+        console.log(`🎉 SUCCESS! User global role was updated to ${role}`);
+        alert(`✅ Member added successfully with role: ${role}\n💾 Global role updated to: ${role}`);
+      } else {
+        console.log(`⚠️ Member added but global role was NOT updated`);
+        alert("✅ Member added to project, but global role was not master");
+      }
 
       setEmail("");
       setRole("worker");
@@ -756,8 +766,11 @@ export default function SpaceDetail() {
       fetchMembers();
 
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Error adding member");
+      console.error(`❌ Error adding member:`, err);
+      console.error(`📋 Response status:`, err.response?.status);
+      console.error(`📋 Response data:`, err.response?.data);
+      console.error(`📋 Full error:`, err.message);
+      alert(`❌ Error: ${err.response?.data?.message || err.message || "Error adding member"}`);
     } finally {
       setAdding(false);
     }
