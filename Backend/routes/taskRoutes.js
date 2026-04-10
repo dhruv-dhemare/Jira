@@ -80,7 +80,7 @@ router.get(
 // Update task (manager or master only, with limited status updates for workers)
 router.put("/:taskId", verifyToken, async (req, res) => {
   const { taskId } = req.params;
-  const { status = 'Todo', title, description, deadline, sprintId, assignedTo } = req.body;
+  const { status = 'Todo', title, description, deadline, sprintId, assigned_to } = req.body;
 
   const task = await pool.query(
     "SELECT * FROM tasks WHERE id=$1",
@@ -97,7 +97,7 @@ router.put("/:taskId", verifyToken, async (req, res) => {
   if (req.user.role === "worker") {
     // Workers can ONLY update status between "Todo" and "In Review"
     // AND cannot update any other fields
-    const isOnlyStatusUpdate = !title && !description && !deadline && !sprintId && !assignedTo;
+    const isOnlyStatusUpdate = !title && !description && !deadline && !sprintId && assigned_to === undefined;
     const isValidWorkerTransition = 
       isOnlyStatusUpdate && 
       ((status === "In Review" && taskData.status === "Todo") ||
@@ -120,7 +120,7 @@ router.put("/:taskId", verifyToken, async (req, res) => {
       sprint_id=COALESCE($5, sprint_id),
       assigned_to=COALESCE($6, assigned_to)
      WHERE id=$7 RETURNING *`,
-    [status, title, description, deadline, sprintId, assignedTo, taskId]
+    [status, title, description, deadline, sprintId, assigned_to, taskId]
   );
   
   await createNotification(
