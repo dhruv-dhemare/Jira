@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import api from "../api/axios";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getSocket } from "../socket/socket";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import SummaryTab from "../components/SummaryTab";
@@ -421,6 +422,96 @@ export default function SpaceDetail() {
     }
   }, [tasksData, members, sprintsData]);
 
+  // Real-time updates via WebSocket
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    // Join project room
+    socket.emit("joinProject", { projectId: id }, (response) => {
+      if (response?.error) {
+        console.error("Error joining project:", response.error);
+      } else {
+        console.log("✅ Joined project room:", id);
+      }
+    });
+
+    // Task Created
+    const handleTaskCreated = (taskData) => {
+      console.log("📝 Task created:", taskData);
+      fetchTasks();
+    };
+
+    // Task Updated
+    const handleTaskUpdated = (updatedTask) => {
+      console.log("✏️ Task updated:", updatedTask);
+      setTasksData(prev =>
+        prev.map(t => t.id === updatedTask.id ? updatedTask : t)
+      );
+    };
+
+    // Task Deleted
+    const handleTaskDeleted = ({ taskId }) => {
+      console.log("🗑️ Task deleted:", taskId);
+      setTasksData(prev => prev.filter(t => t.id !== taskId));
+    };
+
+    // Sprint Created
+    const handleSprintCreated = (sprintData) => {
+      console.log("➕ Sprint created:", sprintData);
+      fetchSprints();
+    };
+
+    // Sprint Updated
+    const handleSprintUpdated = (updatedSprint) => {
+      console.log("✏️ Sprint updated:", updatedSprint);
+      setSprintsData(prev =>
+        prev.map(s => s.id === updatedSprint.id ? updatedSprint : s)
+      );
+    };
+
+    // Sprint Deleted
+    const handleSprintDeleted = ({ sprintId }) => {
+      console.log("🗑️ Sprint deleted:", sprintId);
+      setSprintsData(prev => prev.filter(s => s.id !== sprintId));
+    };
+
+    // Member Added
+    const handleMemberAdded = ({ userId }) => {
+      console.log("👤 Member added:", userId);
+      fetchMembers();
+    };
+
+    // Member Role Changed
+    const handleMemberRoleChanged = ({ userId, role }) => {
+      console.log("👑 Member role changed:", userId, "=>", role);
+      fetchMembers();
+    };
+
+    // Subscribe to events
+    socket.on("taskCreated", handleTaskCreated);
+    socket.on("taskUpdated", handleTaskUpdated);
+    socket.on("taskDeleted", handleTaskDeleted);
+    socket.on("sprintCreated", handleSprintCreated);
+    socket.on("sprintUpdated", handleSprintUpdated);
+    socket.on("sprintDeleted", handleSprintDeleted);
+    socket.on("memberAdded", handleMemberAdded);
+    socket.on("memberRoleChanged", handleMemberRoleChanged);
+
+    // Cleanup - unsubscribe from events and leave room
+    return () => {
+      socket.off("taskCreated", handleTaskCreated);
+      socket.off("taskUpdated", handleTaskUpdated);
+      socket.off("taskDeleted", handleTaskDeleted);
+      socket.off("sprintCreated", handleSprintCreated);
+      socket.off("sprintUpdated", handleSprintUpdated);
+      socket.off("sprintDeleted", handleSprintDeleted);
+      socket.off("memberAdded", handleMemberAdded);
+      socket.off("memberRoleChanged", handleMemberRoleChanged);
+      socket.emit("leaveProject", { projectId: id });
+    };
+  }, [id]);
+
   // Calculate taskStats from fetched tasks
   const taskStats = {
     total: tasksData.length,
@@ -805,6 +896,7 @@ export default function SpaceDetail() {
                 sprintTasksById={sprintTasksById}
                 onCreateSprintClick={() => setShowSprintModal(true)}
                 onDeleteSprint={handleDeleteSprint}
+                currentUser={currentUser}
               />
             )}
             {activeTab === "board" && (

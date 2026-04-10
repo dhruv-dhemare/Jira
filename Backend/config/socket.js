@@ -4,13 +4,22 @@ const registerHandlers = require("../sockets/handlers");
 
 let io;
 
-
-
 const initSocket = (server) => {
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+    "http://localhost:5173",
+    "http://localhost:3000",
+  ];
+
   io = new Server(server, {
     cors: {
-      origin: "*",
+      origin: allowedOrigins,
+      methods: ["GET", "POST"],
+      credentials: true,
     },
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    reconnectionAttempts: 5,
   });
 
   // 🔐 AUTH MIDDLEWARE

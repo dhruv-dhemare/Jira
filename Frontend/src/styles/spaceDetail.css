@@ -1797,3 +1797,102 @@ img{
 .modal-btn-cancel:hover {
   background: #f1f5f9;
 }
+
+/* Add Member Modal Styles */
+.add-member-modal {
+  width: 380px;
+  padding: 28px !important;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--text);
+}
+
+.modal-input-email {
+  width: 100%;
+  padding: 10px 12px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  margin: 0 0 20px 0 !important;
+}
+
+.modal-input-email:focus {
+  outline: none;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.role-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.role-option:hover {
+  background: rgba(37, 99, 235, 0.05);
+  border-color: var(--primary);
+}
+
+.role-option input[type="radio"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.role-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 10px 16px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.btn-primary {
+  background: var(--primary) !important;
+  color: white !important;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover) !important;
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9 !important;
+}

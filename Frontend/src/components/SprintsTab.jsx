@@ -1,13 +1,15 @@
 import { Plus, ChevronDown, ChevronRight, CheckCircle2, Play, Circle, Trash2 } from "lucide-react";
 
-export default function SprintsTab({ sprints, expandedSprintIds, toggleSprintExpanded, sprintTasksById, onCreateSprintClick, onDeleteSprint }) {
+export default function SprintsTab({ sprints, expandedSprintIds, toggleSprintExpanded, sprintTasksById, onCreateSprintClick, onDeleteSprint, currentUser }) {
   return (
     <div className="tab-content">
       <div className="sprints-header">
         <h3>Sprints</h3>
-        <button className="create-sprint-btn" onClick={onCreateSprintClick}>
-          <Plus size="0.875rem" /> Create Sprint
-        </button>
+        {currentUser && ["manager", "master"].includes(currentUser.role) && (
+          <button className="create-sprint-btn" onClick={onCreateSprintClick}>
+            <Plus size="0.875rem" /> Create Sprint
+          </button>
+        )}
       </div>
       <div className="sprints-list">
         {sprints.map((sprint) => (

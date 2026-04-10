@@ -8,11 +8,41 @@ import CreateSpace from "./pages/CreateSpace";
 import Timeline from "./pages/Timeline";
 import Inventory from "./pages/Inventory";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { connectSocket, getSocket, disconnectSocket } from "./socket/socket";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
 
   useEffect(() => {
+    // Initialize socket connection when user logs in
+    if (token) {
+      connectSocket(token);
+      
+      const socket = getSocket();
+      socket?.on("connect", () => {
+        console.log("✅ Socket connected");
+        // Join user room for notifications
+        socket.emit("joinUserRoom");
+      });
+
+      socket?.on("disconnect", () => {
+        console.log("❌ Socket disconnected");
+      });
+
+      socket?.on("error", (error) => {
+        console.error("Socket error:", error);
+      });
+
+      // Listen for notifications
+      socket?.on("notification", (notification) => {
+        console.log("🔔 Notification:", notification);
+        // You can add toast notification here
+      });
+    } else {
+      // Disconnect socket when user logs out
+      disconnectSocket();
+    }
+
     // Listen for storage changes (logout from other tabs/windows)
     const handleStorageChange = () => {
       setToken(localStorage.getItem("token"));
@@ -20,7 +50,7 @@ function App() {
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [token]);
 
   return (
     <Router>

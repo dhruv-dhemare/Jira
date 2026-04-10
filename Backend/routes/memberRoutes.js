@@ -42,6 +42,17 @@ router.post("/assign-master", verifyToken, async (req, res) => {
     ["master", userId]
   );
 
+  // Notify the user
+  await createNotification(
+    userId,
+    "You have been promoted to Master",
+    "MASTER_ASSIGNED"
+  );
+
+  // Broadcast the change
+  const io = getIO();
+  io.to(`project_${projectId}`).emit("memberRoleChanged", { userId, role: "master" });
+
   res.json({ message: "Master assigned" });
 });
 // Assign worker (manager OR master)
