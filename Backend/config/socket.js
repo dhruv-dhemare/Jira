@@ -11,13 +11,17 @@ const initSocket = (server) => {
   // Add default origins if none provided
   if (allowedOrigins.length === 0) {
     allowedOrigins = [
-      "https://sprint-hub.netlify.app",      // Production
+      "https://sprint-hub-pict.vercel.app",  // Production (Vercel)
+      "https://sprint-hub.netlify.app",      // Legacy production URL
       "http://localhost:5173",               // Vite dev
       "http://localhost:3000",               // Alternative dev
       "http://127.0.0.1:5173",              // Loopback
     ];
   } else {
-    // Always include production URL
+    // Always include production URLs
+    if (!allowedOrigins.includes("https://sprint-hub-pict.vercel.app")) {
+      allowedOrigins.push("https://sprint-hub-pict.vercel.app");
+    }
     if (!allowedOrigins.includes("https://sprint-hub.netlify.app")) {
       allowedOrigins.push("https://sprint-hub.netlify.app");
     }

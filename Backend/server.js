@@ -13,7 +13,8 @@ const server = http.createServer(app);
 const corsOptions = {
   // Allow multiple origins (development + production)
   origin: [
-    "https://sprint-hub.netlify.app",        // Production
+    "https://sprint-hub-pict.vercel.app",   // Production (Vercel)
+    "https://sprint-hub.netlify.app",        // Legacy production URL
     "http://localhost:5173",                 // Local dev (Vite)
     "http://localhost:3000",                 // Alternative dev
     "http://127.0.0.1:5173",                 // Loopback

@@ -20,7 +20,7 @@ router.get(
       { expiresIn: "1d" }
     );
 
-    res.redirect(`https://sprint-hub.netlify.app/spaces?token=${token}`);
+    res.redirect(`https://sprint-hub-pict.vercel.app/spaces?token=${token}`);
   }
 );
 
