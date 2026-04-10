@@ -444,20 +444,29 @@ export default function SpaceDetail() {
 
     // Wait for socket to be connected before joining
     const joinProject = () => {
+      console.log("📍 Attempting to join project room:", id);
       socket.emit("joinProject", { projectId: id }, (response) => {
+        console.log("📍 joinProject callback response:", response);
         if (response?.error) {
           console.error("❌ Error joining project:", response.error);
-        } else {
+        } else if (response?.success) {
           console.log("✅ Successfully joined project room:", id);
+        } else {
+          console.log("⚠️ No clear response, but proceeding");
         }
       });
     };
 
     // Join immediately if already connected, otherwise wait
     if (socket.connected) {
+      console.log("🔌 Socket already connected, joining project immediately");
       joinProject();
     } else {
-      socket.once("connect", joinProject);
+      console.log("🔌 Socket not connected yet, waiting for connect event");
+      socket.once("connect", () => {
+        console.log("🔌 Socket connected event fired, now joining project");
+        joinProject();
+      });
     }
 
     // Task Created
@@ -538,6 +547,14 @@ export default function SpaceDetail() {
     socket.on("memberRoleChanged", handleMemberRoleChanged);
 
     console.log("🔌 Socket listeners registered for project:", id);
+    console.log("   - taskCreated ✅");
+    console.log("   - taskUpdated ✅");
+    console.log("   - taskDeleted ✅");
+    console.log("   - sprintCreated ✅");
+    console.log("   - sprintUpdated ✅");
+    console.log("   - sprintDeleted ✅");
+    console.log("   - memberAdded ✅");
+    console.log("   - memberRoleChanged ✅");
 
     // Cleanup - unsubscribe from events and leave room
     return () => {
