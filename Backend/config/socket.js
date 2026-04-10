@@ -5,16 +5,26 @@ const registerHandlers = require("../sockets/handlers");
 let io;
 
 const initSocket = (server) => {
-  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
-    "http://localhost:5173",
-    "http://localhost:3000",
-  ];
+  // Get allowed origins from environment or use defaults
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean);
+  
+  // Add default local development origins
+  if (allowedOrigins.length === 0) {
+    allowedOrigins.push(
+      "http://localhost:5173",  // Vite default
+      "http://localhost:3000",  // Alternative dev port
+      "http://127.0.0.1:5173"
+    );
+  }
+
+  console.log("🔒 Socket CORS allowed origins:", allowedOrigins);
 
   io = new Server(server, {
     cors: {
       origin: allowedOrigins,
       methods: ["GET", "POST"],
       credentials: true,
+      allowEIO3: true, // Support Engine.IO 3 clients
     },
     reconnection: true,
     reconnectionDelay: 1000,

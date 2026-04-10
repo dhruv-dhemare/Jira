@@ -2,17 +2,23 @@ import { io } from "socket.io-client";
 
 let socket;
 
+// Get backend URL from environment or use default
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
 export const connectSocket = (token) => {
   if (socket?.connected) {
     return socket; // Already connected
   }
 
-  socket = io("http://localhost:5000", {
+  console.log("🔌 Connecting to socket at:", BACKEND_URL);
+
+  socket = io(BACKEND_URL, {
     auth: { token },
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     reconnectionAttempts: 5,
+    transports: ["websocket", "polling"], // Try websocket first, fallback to polling
   });
 
   socket.on("connect_error", (error) => {
