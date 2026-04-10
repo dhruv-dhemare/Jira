@@ -56,13 +56,6 @@ export const connectSocket = (token) => {
   return socket;
 };
 
-  socket.on("reconnect", () => {
-    console.log("✅ Reconnected to socket");
-  });
-
-  return socket;
-};
-
 export const getSocket = () => socket;
 
 export const disconnectSocket = () => {
