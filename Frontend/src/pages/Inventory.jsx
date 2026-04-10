@@ -19,6 +19,19 @@ export default function Inventory() {
     limit: "",
   });
 
+  // Increment/Decrement modals
+  const [showIncrementModal, setShowIncrementModal] = useState(false);
+  const [showDecrementModal, setShowDecrementModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [incrementQty, setIncrementQty] = useState("");
+  const [decrementQty, setDecrementQty] = useState("");
+  const [decrementReason, setDecrementReason] = useState("Damaged");
+
+  // History modal
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyData, setHistoryData] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   useEffect(() => {
     fetchInventory();
     fetchUser();
@@ -168,10 +181,11 @@ export default function Inventory() {
 
   const increaseQuantity = async (id) => {
     try {
-      const response = await api.patch(`/inventory/${id}/increment`);
+      const response = await api.patch(`/inventory/${id}/increment`, {
+        quantity: parseInt(incrementQty) || 1,
+      });
       
       if (response.status === 200) {
-        // Update local item with response data
         const updatedProduct = response.data.product;
         setItems((prevItems) =>
           prevItems.map((item) =>
@@ -184,19 +198,25 @@ export default function Inventory() {
               : item
           )
         );
+        console.log(`✅ Successfully incremented by ${response.data.message}`);
+        setShowIncrementModal(false);
+        setIncrementQty("");
+        setSelectedItem(null);
       }
     } catch (err) {
-      console.error("Error incrementing quantity:", err);
-      alert("Failed to increment quantity");
+      console.error("❌ Error incrementing quantity:", err);
+      alert(`Failed to increment: ${err.response?.data?.error || err.message}`);
     }
   };
 
   const decreaseQuantity = async (id) => {
     try {
-      const response = await api.patch(`/inventory/${id}/decrement`);
+      const response = await api.patch(`/inventory/${id}/decrement`, {
+        quantity: parseInt(decrementQty) || 1,
+        reason: decrementReason,
+      });
       
       if (response.status === 200) {
-        // Update local item with response data
         const updatedProduct = response.data.product;
         setItems((prevItems) =>
           prevItems.map((item) =>
@@ -209,11 +229,49 @@ export default function Inventory() {
               : item
           )
         );
+        console.log(`✅ Successfully decremented: ${response.data.message}`);
+        setShowDecrementModal(false);
+        setDecrementQty("");
+        setDecrementReason("Damaged");
+        setSelectedItem(null);
       }
     } catch (err) {
-      console.error("Error decrementing quantity:", err);
-      alert("Failed to decrement quantity");
+      console.error("❌ Error decrementing quantity:", err);
+      alert(`Failed to decrement: ${err.response?.data?.error || err.message}`);
     }
+  };
+
+  const fetchHistory = async (id) => {
+    try {
+      setHistoryLoading(true);
+      const response = await api.get(`/inventory/${id}/history`);
+      setHistoryData(response.data || []);
+      console.log(`📜 Fetched history for item ${id}:`, response.data);
+    } catch (err) {
+      console.error("❌ Error fetching history:", err);
+      alert("Failed to fetch inventory history");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleOpenIncrementModal = (item) => {
+    setSelectedItem(item);
+    setIncrementQty("");
+    setShowIncrementModal(true);
+  };
+
+  const handleOpenDecrementModal = (item) => {
+    setSelectedItem(item);
+    setDecrementQty("");
+    setDecrementReason("Damaged");
+    setShowDecrementModal(true);
+  };
+
+  const handleOpenHistoryModal = (item) => {
+    setSelectedItem(item);
+    setShowHistoryModal(true);
+    fetchHistory(item.id);
   };
 
   return (
@@ -283,7 +341,7 @@ export default function Inventory() {
                             <div className="quantity-editor">
                               <button
                                 className="qty-btn qty-minus"
-                                onClick={() => decreaseQuantity(item.id)}
+                                onClick={() => handleOpenDecrementModal(item)}
                                 title="Decrease quantity"
                               >
                                 <Minus size={14} />
@@ -291,10 +349,18 @@ export default function Inventory() {
                               <span className="qty-display">{item.available}</span>
                               <button
                                 className="qty-btn qty-plus"
-                                onClick={() => increaseQuantity(item.id)}
+                                onClick={() => handleOpenIncrementModal(item)}
                                 title="Increase quantity"
                               >
                                 <Plus size={14} />
+                              </button>
+                              <button
+                                className="qty-btn qty-history"
+                                onClick={() => handleOpenHistoryModal(item)}
+                                title="View history"
+                                style={{ marginLeft: "0.5rem", fontSize: "0.75rem" }}
+                              >
+                                📜
                               </button>
                             </div>
                           ) : (
@@ -410,6 +476,245 @@ export default function Inventory() {
                 </button>
               </div>
             </form>
+          </div>
+        </>
+      )}
+
+      {/* Increment Modal */}
+      {showIncrementModal && selectedItem && (
+        <>
+          <div
+            className="modal-backdrop"
+            onClick={() => setShowIncrementModal(false)}
+          ></div>
+          <div className="modal-card" style={{ maxWidth: "400px" }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Increment Stock</h2>
+              <button
+                className="modal-close"
+                onClick={() => setShowIncrementModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: "1.5rem" }}>
+              <p style={{ marginBottom: "1rem", color: "#666" }}>
+                Item: <strong>{selectedItem.name}</strong> (Current: {selectedItem.available})
+              </p>
+
+              <div className="modal-section">
+                <label className="form-label">Quantity to Add</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10000"
+                  value={incrementQty}
+                  onChange={(e) => setIncrementQty(e.target.value)}
+                  placeholder="Enter quantity"
+                  className="form-input"
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowIncrementModal(false)}
+                  className="btn-cancel"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => increaseQuantity(selectedItem.id)}
+                  className="btn-submit"
+                  disabled={!incrementQty || parseInt(incrementQty) <= 0}
+                >
+                  Add {incrementQty || 0}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Decrement Modal */}
+      {showDecrementModal && selectedItem && (
+        <>
+          <div
+            className="modal-backdrop"
+            onClick={() => setShowDecrementModal(false)}
+          ></div>
+          <div className="modal-card" style={{ maxWidth: "400px" }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Decrease Stock</h2>
+              <button
+                className="modal-close"
+                onClick={() => setShowDecrementModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: "1.5rem" }}>
+              <p style={{ marginBottom: "1rem", color: "#666" }}>
+                Item: <strong>{selectedItem.name}</strong> (Current: {selectedItem.available})
+              </p>
+
+              <div className="modal-section">
+                <label className="form-label">Quantity to Remove</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10000"
+                  value={decrementQty}
+                  onChange={(e) => setDecrementQty(e.target.value)}
+                  placeholder="Enter quantity"
+                  className="form-input"
+                  autoFocus
+                />
+              </div>
+
+              <div className="modal-section">
+                <label className="form-label">Reason for Decrement</label>
+                <select
+                  value={decrementReason}
+                  onChange={(e) => setDecrementReason(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="Damaged">Damaged</option>
+                  <option value="Lost">Lost</option>
+                  <option value="Expired">Expired</option>
+                  <option value="Customer Return">Customer Return</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowDecrementModal(false)}
+                  className="btn-cancel"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => decreaseQuantity(selectedItem.id)}
+                  className="btn-submit"
+                  disabled={!decrementQty || parseInt(decrementQty) <= 0}
+                  style={{ backgroundColor: "#ef4444" }}
+                >
+                  Remove {decrementQty || 0}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* History Modal */}
+      {showHistoryModal && selectedItem && (
+        <>
+          <div
+            className="modal-backdrop"
+            onClick={() => setShowHistoryModal(false)}
+          ></div>
+          <div className="modal-card" style={{ maxWidth: "600px" }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Inventory History - {selectedItem.name}</h2>
+              <button
+                className="modal-close"
+                onClick={() => setShowHistoryModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ padding: "1.5rem" }}>
+              {historyLoading ? (
+                <div style={{ textAlign: "center", padding: "2rem", color: "#999" }}>
+                  Loading history...
+                </div>
+              ) : historyData.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "2rem", color: "#999" }}>
+                  No history records found
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    fontSize: "0.9rem",
+                  }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid #ddd" }}>
+                        <th style={{ padding: "0.75rem", textAlign: "left" }}>User</th>
+                        <th style={{ padding: "0.75rem", textAlign: "left" }}>Action</th>
+                        <th style={{ padding: "0.75rem", textAlign: "center" }}>Qty</th>
+                        <th style={{ padding: "0.75rem", textAlign: "left" }}>Reason</th>
+                        <th style={{ padding: "0.75rem", textAlign: "left" }}>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historyData.map((record) => (
+                        <tr key={record.id} style={{ borderBottom: "1px solid #eee" }}>
+                          <td style={{ padding: "0.75rem" }}>
+                            <div>
+                              <strong>{record.name}</strong>
+                              <div style={{ fontSize: "0.8rem", color: "#999" }}>
+                                {record.email}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: "0.75rem" }}>
+                            <span
+                              style={{
+                                padding: "0.25rem 0.5rem",
+                                borderRadius: "4px",
+                                fontSize: "0.85rem",
+                                fontWeight: "600",
+                                backgroundColor:
+                                  record.action === "INCREMENT" ? "#d1fae5" : "#fee2e2",
+                                color:
+                                  record.action === "INCREMENT" ? "#065f46" : "#991b1b",
+                              }}
+                            >
+                              {record.action}
+                            </span>
+                          </td>
+                          <td style={{ padding: "0.75rem", textAlign: "center" }}>
+                            <strong>{record.quantity}</strong>
+                          </td>
+                          <td style={{ padding: "0.75rem", color: "#666" }}>
+                            {record.reason || "-"}
+                          </td>
+                          <td style={{ padding: "0.75rem", whiteSpace: "nowrap", color: "#999" }}>
+                            {new Date(record.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="form-actions" style={{ marginTop: "1.5rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowHistoryModal(false)}
+                  className="btn-submit"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
