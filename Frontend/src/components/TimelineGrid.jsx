@@ -14,13 +14,14 @@ const TimelineGrid = ({ events, onEventSelect }) => {
     const yearStart = new Date(startYear, 6, 1); // July 1
     const yearEnd = new Date(endYear, 5, 30); // June 30
 
+    const parseLocalDate = (dateString) => {
+      const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+      return new Date(year, month - 1, day);
+    };
+
     const filtered = events.filter((event) => {
-      // Extract date part (YYYY-MM-DD) from ISO string and parse at midnight
-      const dateOnly = event.startDate.split("T")[0];
-      const endDateOnly = event.endDate.split("T")[0];
-      
-      const startDate = new Date(dateOnly + "T00:00:00");
-      const endDate = new Date(endDateOnly + "T00:00:00");
+      const startDate = parseLocalDate(event.startDate);
+      const endDate = parseLocalDate(event.endDate);
 
       const overlaps = startDate <= yearEnd && endDate >= yearStart;
       return overlaps;

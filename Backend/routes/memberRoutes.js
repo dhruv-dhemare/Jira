@@ -36,6 +36,12 @@ router.post("/assign-master", verifyToken, async (req, res) => {
     [userId, projectId, "master", req.user.id]
   );
 
+  // Update user's role in users table to master
+  await pool.query(
+    "UPDATE users SET role=$1 WHERE id=$2",
+    ["master", userId]
+  );
+
   res.json({ message: "Master assigned" });
 });
 // Assign worker (manager OR master)

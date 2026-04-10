@@ -177,13 +177,15 @@ export default function Inventory() {
                   Track robotics club components and parts
                 </p>
               </div>
-              <button
-                className="btn-add-item"
-                onClick={() => setShowAddModal(true)}
-              >
-                <Plus size={20} />
-                Add Item
-              </button>
+              {user && ["manager", "master", "worker"].includes(user.role) && (
+                <button
+                  className="btn-add-item"
+                  onClick={() => setShowAddModal(true)}
+                >
+                  <Plus size={20} />
+                  Add Item
+                </button>
+              )}
             </div>
 
             {/* Search Section */}

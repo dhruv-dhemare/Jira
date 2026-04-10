@@ -11,7 +11,9 @@ export default function CalendarTab({ tasksData = [] }) {
     
     tasksData.forEach(task => {
       if (task.deadline) {
-        const deadline = new Date(task.deadline);
+        // Parse YYYY-MM-DD format and create date in local timezone
+        const [year, month, day] = task.deadline.split('T')[0].split('-').map(Number);
+        const deadline = new Date(year, month - 1, day);
         const dateKey = deadline.toISOString().split('T')[0]; // YYYY-MM-DD format
         
         if (!events[dateKey]) {

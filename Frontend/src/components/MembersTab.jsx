@@ -17,9 +17,11 @@ export default function MembersTab({ members, loadingMembers, onAddMemberClick, 
     <div className="tab-content">
       <div className="members-header">
         <h3>Members</h3>
-        <button className="add-member-btn" onClick={onAddMemberClick}>
-          <Plus size="0.875rem" /> Add Member
-        </button>
+        {currentUser && ["manager", "master"].includes(currentUser.role) && (
+          <button className="add-member-btn" onClick={onAddMemberClick}>
+            <Plus size="0.875rem" /> Add Member
+          </button>
+        )}
       </div>
       <div className="members-list">
         {loadingMembers ? (

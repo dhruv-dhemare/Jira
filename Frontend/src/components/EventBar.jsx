@@ -9,12 +9,14 @@ const EventBar = ({ event, selectedYear, onEventClick }) => {
   const timelineStart = new Date(startYear, 6, 1); // July 1
   const timelineEnd = new Date(endYear, 5, 30); // June 30
 
-  // Extract date part (YYYY-MM-DD) from ISO string and parse at midnight
-  const startDateOnly = event.startDate.split("T")[0];
-  const endDateOnly = event.endDate.split("T")[0];
+  // Parse YYYY-MM-DD format and create dates in local timezone
+  const parseLocalDate = (dateString) => {
+    const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
   
-  let start = new Date(startDateOnly + "T00:00:00");
-  let end = new Date(endDateOnly + "T00:00:00");
+  let start = parseLocalDate(event.startDate);
+  let end = parseLocalDate(event.endDate);
 
   // 🔥 Clamp inside timeline
   if (start < timelineStart) start = timelineStart;
