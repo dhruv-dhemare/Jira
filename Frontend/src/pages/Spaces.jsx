@@ -55,28 +55,53 @@ export default function Spaces() {
 
   // WebSocket listeners for real-time project updates
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket?.connected) return;
+    let socket = getSocket();
+    
+    // If socket not ready yet, wait for it to be ready
+    if (!socket || !socket.connected) {
+      console.log("⏳ Spaces: Socket not ready yet, polling for connection. Socket exists:", !!socket, "Connected:", socket?.connected);
+      const checkSocket = setInterval(() => {
+        socket = getSocket();
+        if (socket?.connected) {
+          console.log("✅ Spaces: Socket is now ready, clearing interval");
+          clearInterval(checkSocket);
+          setupSocketListeners(socket);
+        }
+      }, 100);
+      
+      return () => clearInterval(checkSocket);
+    }
 
-    const handleProjectCreated = (project) => {
-      console.log("🏢 New project created:", project);
-      handleAuthAndFetch();
-    };
+    // Socket exists and is connected, set up listeners
+    console.log("✅ Spaces: Socket already connected, setting up listeners");
+    const cleanup = setupSocketListeners(socket);
+    return cleanup;
 
-    const handleProjectUpdated = (project) => {
-      console.log("🏢 Project updated:", project);
-      setSpaces((prev) =>
-        prev.map((p) => (p.id === project.id ? project : p))
-      );
-    };
+    function setupSocketListeners(socket) {
+      console.log("🔌 Spaces: Setting up socket listeners");
 
-    socket.on("projectCreated", handleProjectCreated);
-    socket.on("projectUpdated", handleProjectUpdated);
+      const handleProjectCreated = (project) => {
+        console.log("🏢 New project created via socket:", project);
+        handleAuthAndFetch();
+      };
 
-    return () => {
-      socket.off("projectCreated", handleProjectCreated);
-      socket.off("projectUpdated", handleProjectUpdated);
-    };
+      const handleProjectUpdated = (project) => {
+        console.log("🏢 Project updated via socket:", project);
+        setSpaces((prev) =>
+          prev.map((p) => (p.id === project.id ? project : p))
+        );
+      };
+
+      socket.on("projectCreated", handleProjectCreated);
+      socket.on("projectUpdated", handleProjectUpdated);
+      console.log("🏢 Spaces: Socket listeners registered");
+
+      return () => {
+        console.log("🧹 Spaces: Cleaning up socket listeners");
+        socket.off("projectCreated", handleProjectCreated);
+        socket.off("projectUpdated", handleProjectUpdated);
+      };
+    }
   }, []);
 
   // 📅 Format date helper

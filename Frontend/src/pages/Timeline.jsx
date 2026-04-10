@@ -24,19 +24,44 @@ const Timeline = () => {
 
   // WebSocket listeners for real-time updates
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket?.connected) return;
+    let socket = getSocket();
+    
+    // If socket not ready yet, wait for it to be ready
+    if (!socket || !socket.connected) {
+      console.log("⏳ Timeline: Socket not ready yet, polling for connection. Socket exists:", !!socket, "Connected:", socket?.connected);
+      const checkSocket = setInterval(() => {
+        socket = getSocket();
+        if (socket?.connected) {
+          console.log("✅ Timeline: Socket is now ready, clearing interval");
+          clearInterval(checkSocket);
+          setupSocketListeners(socket);
+        }
+      }, 100);
+      
+      return () => clearInterval(checkSocket);
+    }
 
-    const handleCompetitionCreated = (competition) => {
-      console.log("🎯 Competition created:", competition);
-      fetchCompetitions();
-    };
+    // Socket exists and is connected, set up listeners
+    console.log("✅ Timeline: Socket already connected, setting up listeners");
+    const cleanup = setupSocketListeners(socket);
+    return cleanup;
 
-    socket.on("competitionCreated", handleCompetitionCreated);
+    function setupSocketListeners(socket) {
+      console.log("🔌 Timeline: Setting up socket listeners");
 
-    return () => {
-      socket.off("competitionCreated", handleCompetitionCreated);
-    };
+      const handleCompetitionCreated = (competition) => {
+        console.log("🎯 Competition created via socket:", competition);
+        fetchCompetitions();
+      };
+
+      socket.on("competitionCreated", handleCompetitionCreated);
+      console.log("🎯 Timeline: Socket listener 'competitionCreated' registered");
+
+      return () => {
+        console.log("🧹 Timeline: Cleaning up socket listeners");
+        socket.off("competitionCreated", handleCompetitionCreated);
+      };
+    }
   }, []);
 
   const fetchUser = async () => {

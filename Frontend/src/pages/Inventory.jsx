@@ -26,26 +26,51 @@ export default function Inventory() {
 
   // WebSocket listeners for real-time inventory updates
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket?.connected) return;
+    let socket = getSocket();
+    
+    // If socket not ready yet, wait for it to be ready
+    if (!socket || !socket.connected) {
+      console.log("⏳ Inventory: Socket not ready yet, polling for connection. Socket exists:", !!socket, "Connected:", socket?.connected);
+      const checkSocket = setInterval(() => {
+        socket = getSocket();
+        if (socket?.connected) {
+          console.log("✅ Inventory: Socket is now ready, clearing interval");
+          clearInterval(checkSocket);
+          setupSocketListeners(socket);
+        }
+      }, 100);
+      
+      return () => clearInterval(checkSocket);
+    }
 
-    const handleInventoryItemCreated = (item) => {
-      console.log("📦 New inventory item created:", item);
-      fetchInventory();
-    };
+    // Socket exists and is connected, set up listeners
+    console.log("✅ Inventory: Socket already connected, setting up listeners");
+    const cleanup = setupSocketListeners(socket);
+    return cleanup;
 
-    const handleInventoryItemUpdated = (item) => {
-      console.log("📦 Inventory item updated:", item);
-      fetchInventory();
-    };
+    function setupSocketListeners(socket) {
+      console.log("🔌 Inventory: Setting up socket listeners");
 
-    socket.on("inventoryItemCreated", handleInventoryItemCreated);
-    socket.on("inventoryItemUpdated", handleInventoryItemUpdated);
+      const handleInventoryItemCreated = (item) => {
+        console.log("📦 New inventory item created via socket:", item);
+        fetchInventory();
+      };
 
-    return () => {
-      socket.off("inventoryItemCreated", handleInventoryItemCreated);
-      socket.off("inventoryItemUpdated", handleInventoryItemUpdated);
-    };
+      const handleInventoryItemUpdated = (item) => {
+        console.log("📦 Inventory item updated via socket:", item);
+        fetchInventory();
+      };
+
+      socket.on("inventoryItemCreated", handleInventoryItemCreated);
+      socket.on("inventoryItemUpdated", handleInventoryItemUpdated);
+      console.log("📦 Inventory: Socket listeners registered");
+
+      return () => {
+        console.log("🧹 Inventory: Cleaning up socket listeners");
+        socket.off("inventoryItemCreated", handleInventoryItemCreated);
+        socket.off("inventoryItemUpdated", handleInventoryItemUpdated);
+      };
+    }
   }, []);
 
   const fetchUser = async () => {
