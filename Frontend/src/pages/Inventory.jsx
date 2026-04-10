@@ -25,7 +25,7 @@ export default function Inventory() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [incrementQty, setIncrementQty] = useState("");
   const [decrementQty, setDecrementQty] = useState("");
-  const [decrementReason, setDecrementReason] = useState("Damaged");
+  const [decrementReason, setDecrementReason] = useState("");
 
   // History modal
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -232,7 +232,7 @@ export default function Inventory() {
         console.log(`✅ Successfully decremented: ${response.data.message}`);
         setShowDecrementModal(false);
         setDecrementQty("");
-        setDecrementReason("Damaged");
+        setDecrementReason("");
         setSelectedItem(null);
       }
     } catch (err) {
@@ -264,7 +264,7 @@ export default function Inventory() {
   const handleOpenDecrementModal = (item) => {
     setSelectedItem(item);
     setDecrementQty("");
-    setDecrementReason("Damaged");
+    setDecrementReason("");
     setShowDecrementModal(true);
   };
 
@@ -577,18 +577,14 @@ export default function Inventory() {
               </div>
 
               <div className="modal-section">
-                <label className="form-label">Reason for Decrement</label>
-                <select
+                <label className="form-label">Reason for Decrement *</label>
+                <input
+                  type="text"
                   value={decrementReason}
                   onChange={(e) => setDecrementReason(e.target.value)}
+                  placeholder="e.g., Damaged, Lost, Expired, Customer Return"
                   className="form-input"
-                >
-                  <option value="Damaged">Damaged</option>
-                  <option value="Lost">Lost</option>
-                  <option value="Expired">Expired</option>
-                  <option value="Customer Return">Customer Return</option>
-                  <option value="Other">Other</option>
-                </select>
+                />
               </div>
 
               <div className="form-actions">
@@ -603,7 +599,7 @@ export default function Inventory() {
                   type="button"
                   onClick={() => decreaseQuantity(selectedItem.id)}
                   className="btn-submit"
-                  disabled={!decrementQty || parseInt(decrementQty) <= 0}
+                  disabled={!decrementQty || parseInt(decrementQty) <= 0 || !decrementReason.trim()}
                   style={{ backgroundColor: "#ef4444" }}
                 >
                   Remove {decrementQty || 0}
