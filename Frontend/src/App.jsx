@@ -38,6 +38,13 @@ function App() {
         console.log("🔔 Notification:", notification);
         // You can add toast notification here
       });
+
+      // Listen for user role changes
+      socket?.on("userRoleChanged", (data) => {
+        console.log("👑 Your role has been updated:", data);
+        // Reload page to refresh user data and permissions
+        window.location.reload();
+      });
     } else {
       // Disconnect socket when user logs out
       disconnectSocket();

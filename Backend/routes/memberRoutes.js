@@ -22,6 +22,8 @@ router.post("/assign-master", verifyToken, async (req, res) => {
 
     const userId = user.rows[0].id;
 
+    console.log(`🔍 Current user role before update:`, user.rows[0]);
+
     // Check if requester is manager
     const project = await pool.query(
       "SELECT * FROM projects WHERE id=$1 AND manager_id=$2",
@@ -32,11 +34,22 @@ router.post("/assign-master", verifyToken, async (req, res) => {
       return res.status(403).json({ error: "Only manager can assign master" });
     }
 
+    // Check current user info before update
+    const userBefore = await pool.query(
+      "SELECT id, email, role FROM users WHERE id=$1",
+      [userId]
+    );
+    console.log(`📋 User info BEFORE update:`, userBefore.rows[0]);
+
     // Insert user as master in project_members
-    await pool.query(
-      "INSERT INTO project_members (user_id, project_id, role, assigned_by) VALUES ($1, $2, $3, $4)",
+    const insertResult = await pool.query(
+      "INSERT INTO project_members (user_id, project_id, role, assigned_by) VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, project_id) DO UPDATE SET role=$3 RETURNING *",
       [userId, projectId, "master", req.user.id]
     );
+    console.log(`✅ Inserted/Updated project_members:`, insertResult.rows[0]);
+
+    console.log(`🔄 Attempting to update user ${userId} to master role...`);
+    console.log(`📊 Update query: UPDATE users SET role=$1 WHERE id=$2 with values: ["master", ${userId}]`);
 
     // Update user's global role in users table to master
     const updateResult = await pool.query(
@@ -44,8 +57,24 @@ router.post("/assign-master", verifyToken, async (req, res) => {
       ["master", userId]
     );
 
+    console.log(`📊 Update result:`, updateResult);
+    console.log(`📊 Rows affected:`, updateResult.rowCount);
+    console.log(`📊 Returned rows:`, updateResult.rows);
+
+    // Verify the update
+    const userAfter = await pool.query(
+      "SELECT id, email, role FROM users WHERE id=$1",
+      [userId]
+    );
+    console.log(`📋 User info AFTER update:`, userAfter.rows[0]);
+
+    if (updateResult.rowCount === 0) {
+      console.error(`❌ Failed to update user ${userId} to master role - no rows affected`);
+      return res.status(500).json({ error: "Failed to update user role" });
+    }
+
     if (updateResult.rows.length === 0) {
-      console.error(`❌ Failed to update user ${userId} to master role`);
+      console.error(`❌ Failed to update user ${userId} to master role - no rows returned`);
       return res.status(500).json({ error: "Failed to update user role" });
     }
 
@@ -58,9 +87,18 @@ router.post("/assign-master", verifyToken, async (req, res) => {
       "MASTER_ASSIGNED"
     );
 
-    // Broadcast the change
+    // Broadcast the change to project room
     const io = getIO();
     io.to(`project_${projectId}`).emit("memberRoleChanged", { userId, role: "master" });
+    
+    // Broadcast to user's personal room so they're notified of role change
+    io.to(`user_${userId}`).emit("userRoleChanged", { 
+      userId, 
+      oldRole: "worker", 
+      newRole: "master",
+      message: "Your role has been updated to Master"
+    });
+    console.log(`📡 Broadcasting userRoleChanged to user_${userId}`);
 
     res.json({ 
       message: "Master assigned successfully",
