@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 const { verifyToken } = require("../middleware/authMiddleware");
+const { getIO } = require("../config/socket");
 
 
 // ➕ Create competition (manager only)
@@ -25,6 +26,11 @@ router.post("/", verifyToken, async (req, res) => {
        RETURNING *`,
       [name, description || null, start_date, end_date]
     );
+
+    // 📡 Broadcast to all users
+    const io = getIO();
+    io.emit("competitionCreated", result.rows[0]);
+    console.log("📡 Broadcasting competitionCreated");
 
     res.status(201).json({
       message: "Competition created",

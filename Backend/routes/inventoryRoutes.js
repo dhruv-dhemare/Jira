@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 const { verifyToken } = require("../middleware/authMiddleware");
+const { getIO } = require("../config/socket");
 
 // ✅ GET all inventory items
 router.get("/", verifyToken, async (req, res) => {
@@ -57,6 +58,11 @@ router.post("/", verifyToken, async (req, res) => {
         min_limit || 0
       ]
     );
+
+    // 📡 Broadcast inventory update to all users
+    const io = getIO();
+    io.emit("inventoryItemCreated", result.rows[0]);
+    console.log("📡 Broadcasting inventoryItemCreated");
 
     res.status(201).json({
       message: "Product created successfully",

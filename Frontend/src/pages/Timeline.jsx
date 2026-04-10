@@ -6,6 +6,7 @@ import AddEventModal from "../components/AddEventModal";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
+import { getSocket } from "../socket/socket";
 import "../styles/timeline.css";
 
 const Timeline = () => {
@@ -19,6 +20,23 @@ const Timeline = () => {
   useEffect(() => {
     fetchCompetitions();
     fetchUser();
+  }, []);
+
+  // WebSocket listeners for real-time updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket?.connected) return;
+
+    const handleCompetitionCreated = (competition) => {
+      console.log("🎯 Competition created:", competition);
+      fetchCompetitions();
+    };
+
+    socket.on("competitionCreated", handleCompetitionCreated);
+
+    return () => {
+      socket.off("competitionCreated", handleCompetitionCreated);
+    };
   }, []);
 
   const fetchUser = async () => {

@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import SpaceCard from "../components/SpaceCard";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { getSocket } from "../socket/socket";
 import "../styles/spaces.css";
 
 export default function Spaces() {
@@ -51,6 +52,32 @@ export default function Spaces() {
       setLoading(false);
     }
   };
+
+  // WebSocket listeners for real-time project updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket?.connected) return;
+
+    const handleProjectCreated = (project) => {
+      console.log("🏢 New project created:", project);
+      handleAuthAndFetch();
+    };
+
+    const handleProjectUpdated = (project) => {
+      console.log("🏢 Project updated:", project);
+      setSpaces((prev) =>
+        prev.map((p) => (p.id === project.id ? project : p))
+      );
+    };
+
+    socket.on("projectCreated", handleProjectCreated);
+    socket.on("projectUpdated", handleProjectUpdated);
+
+    return () => {
+      socket.off("projectCreated", handleProjectCreated);
+      socket.off("projectUpdated", handleProjectUpdated);
+    };
+  }, []);
 
   // 📅 Format date helper
   const formatDate = (date) => {

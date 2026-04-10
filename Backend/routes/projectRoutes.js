@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
 const { verifyToken } = require("../middleware/authMiddleware");
+const { getIO } = require("../config/socket");
 
 // Create project (manager only)
 router.post("/", verifyToken, async (req, res) => {
@@ -42,6 +43,11 @@ router.post("/", verifyToken, async (req, res) => {
        ON CONFLICT (user_id, project_id) DO NOTHING`,
       [req.user.id, projectId, "manager", req.user.id]
     );
+
+    // 📡 Broadcast to all connected users
+    const io = getIO();
+    io.to(`user_${req.user.id}`).emit("projectCreated", project.rows[0]);
+    console.log(`📡 Broadcasting projectCreated to user ${req.user.id}`);
 
     res.status(201).json(project.rows[0]);
 

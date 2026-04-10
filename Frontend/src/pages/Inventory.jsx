@@ -3,6 +3,7 @@ import { Plus, Search, Minus } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 import api from "../api/axios";
+import { getSocket } from "../socket/socket";
 import "../styles/inventory.css";
 
 export default function Inventory() {
@@ -21,6 +22,30 @@ export default function Inventory() {
   useEffect(() => {
     fetchInventory();
     fetchUser();
+  }, []);
+
+  // WebSocket listeners for real-time inventory updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket?.connected) return;
+
+    const handleInventoryItemCreated = (item) => {
+      console.log("📦 New inventory item created:", item);
+      fetchInventory();
+    };
+
+    const handleInventoryItemUpdated = (item) => {
+      console.log("📦 Inventory item updated:", item);
+      fetchInventory();
+    };
+
+    socket.on("inventoryItemCreated", handleInventoryItemCreated);
+    socket.on("inventoryItemUpdated", handleInventoryItemUpdated);
+
+    return () => {
+      socket.off("inventoryItemCreated", handleInventoryItemCreated);
+      socket.off("inventoryItemUpdated", handleInventoryItemUpdated);
+    };
   }, []);
 
   const fetchUser = async () => {
