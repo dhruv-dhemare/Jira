@@ -61,8 +61,9 @@ router.post("/", verifyToken, async (req, res) => {
 
     // 📡 Broadcast inventory update to all users
     const io = getIO();
+    console.log("📡 About to broadcast inventoryItemCreated with data:", result.rows[0]);
     io.emit("inventoryItemCreated", result.rows[0]);
-    console.log("📡 Broadcasting inventoryItemCreated");
+    console.log("✅ Broadcasting inventoryItemCreated completed");
 
     res.status(201).json({
       message: "Product created successfully",

@@ -52,17 +52,23 @@ export default function Inventory() {
       console.log("🔌 Inventory: Setting up socket listeners");
 
       const handleInventoryItemCreated = (item) => {
-        console.log("📦 New inventory item created via socket:", item);
+        console.log("📦 EVENT RECEIVED: inventoryItemCreated", item);
         fetchInventory();
       };
 
       const handleInventoryItemUpdated = (item) => {
-        console.log("📦 Inventory item updated via socket:", item);
+        console.log("📦 EVENT RECEIVED: inventoryItemUpdated", item);
         fetchInventory();
       };
 
       socket.on("inventoryItemCreated", handleInventoryItemCreated);
       socket.on("inventoryItemUpdated", handleInventoryItemUpdated);
+      
+      // Debug: Listen for ANY event
+      socket.onAny((eventName, ...args) => {
+        console.log(`🔔 DEBUG: Socket event received: "${eventName}"`, args);
+      });
+      
       console.log("📦 Inventory: Socket listeners registered");
 
       return () => {
