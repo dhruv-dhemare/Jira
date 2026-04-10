@@ -416,9 +416,21 @@ export default function SpaceDetail() {
 
   // Update board data when tasks or members change
   useEffect(() => {
+    console.log("� Board reorganization triggered");
+    console.log("   - tasksData count:", tasksData.length);
+    console.log("   - members count:", members.length);
+    console.log("   - sprintsData count:", sprintsData.length);
+    
     if (tasksData.length > 0 && members.length > 0) {
       const organized = organizeBoardData(tasksData, members);
+      console.log("✅ Board reorganized with columns:");
+      console.log("   - Todo:", organized.todo.length);
+      console.log("   - In Progress:", organized.inprogress.length);
+      console.log("   - In Review:", organized.review.length);
+      console.log("   - Done:", organized.done.length);
       setBoardData(organized);
+    } else {
+      console.warn("⚠️ Skipping board reorganization - tasks or members missing");
     }
   }, [tasksData, members, sprintsData]);
 
@@ -459,9 +471,19 @@ export default function SpaceDetail() {
       console.log("✏️ Task updated event received:", eventData);
       // Handle both formats: {data: task} or just task
       const updatedTask = eventData.data || eventData;
-      setTasksData(prev =>
-        prev.map(t => t.id === updatedTask.id ? updatedTask : t)
-      );
+      console.log("🔄 Updating task in state:", updatedTask.id, "Status:", updatedTask.status);
+      
+      setTasksData(prev => {
+        const updated = prev.map(t => {
+          if (t.id === updatedTask.id) {
+            console.log("✅ Found task to update, replacing with new data");
+            return updatedTask;
+          }
+          return t;
+        });
+        console.log("📝 Updated tasks array, new length:", updated.length);
+        return updated;
+      });
     };
 
     // Task Deleted
