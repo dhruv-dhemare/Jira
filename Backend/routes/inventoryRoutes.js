@@ -136,6 +136,11 @@ router.patch("/:id/increment", verifyToken, async (req, res) => {
       return res.status(404).json({ error: "Product not found" });
     }
 
+    // 📡 Broadcast inventory update to all users
+    const io = getIO();
+    console.log("📡 Broadcasting inventoryItemUpdated (increment):", result.rows[0]);
+    io.emit("inventoryItemUpdated", result.rows[0]);
+
     res.json({
       message: "Incremented",
       product: result.rows[0],
@@ -169,6 +174,11 @@ router.patch("/:id/decrement", verifyToken, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Product not found" });
     }
+
+    // 📡 Broadcast inventory update to all users
+    const io = getIO();
+    console.log("📡 Broadcasting inventoryItemUpdated (decrement):", result.rows[0]);
+    io.emit("inventoryItemUpdated", result.rows[0]);
 
     res.json({
       message: "Decremented",
