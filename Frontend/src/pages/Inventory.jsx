@@ -337,7 +337,7 @@ export default function Inventory() {
                         <td className="col-item">{item.name}</td>
                         <td className="col-category">{item.category}</td>
                         <td className="col-available">
-                          {user?.role === ["manager", "master"] ? (
+                          {user?.role && ["manager", "master"].includes(user.role) ? (
                             <div className="quantity-editor">
                               <button
                                 className="qty-btn qty-minus"
