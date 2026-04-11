@@ -364,8 +364,9 @@ export default function Inventory() {
                               </button>
                             </div>
                           ) : (
-                            <span>{item.available}</span>
-                            <button
+                            <div className="quantity-display">
+                              <span>{item.available}</span>
+                              <button
                                 className="qty-btn qty-history"
                                 onClick={() => handleOpenHistoryModal(item)}
                                 title="View history"
@@ -373,6 +374,7 @@ export default function Inventory() {
                               >
                                 📜
                               </button>
+                            </div>
                           )}
                         </td>
                         <td className="col-status">
