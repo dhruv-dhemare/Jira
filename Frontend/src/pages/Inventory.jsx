@@ -291,7 +291,7 @@ export default function Inventory() {
                   Track robotics club components and parts
                 </p>
               </div>
-              {user && ["manager", "master", "worker"].includes(user.role) && (
+              {user && ["manager", "master"].includes(user.role) && (
                 <button
                   className="btn-add-item"
                   onClick={() => setShowAddModal(true)}
@@ -337,7 +337,7 @@ export default function Inventory() {
                         <td className="col-item">{item.name}</td>
                         <td className="col-category">{item.category}</td>
                         <td className="col-available">
-                          {user?.role === "manager" ? (
+                          {user?.role === ["manager", "master"] ? (
                             <div className="quantity-editor">
                               <button
                                 className="qty-btn qty-minus"
@@ -365,6 +365,14 @@ export default function Inventory() {
                             </div>
                           ) : (
                             <span>{item.available}</span>
+                            <button
+                                className="qty-btn qty-history"
+                                onClick={() => handleOpenHistoryModal(item)}
+                                title="View history"
+                                style={{ marginLeft: "0.5rem", fontSize: "0.75rem" }}
+                              >
+                                📜
+                              </button>
                           )}
                         </td>
                         <td className="col-status">
