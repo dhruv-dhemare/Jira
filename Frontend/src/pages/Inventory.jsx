@@ -364,17 +364,7 @@ export default function Inventory() {
                               </button>
                             </div>
                           ) : (
-                            <div className="quantity-display">
-                              <span>{item.available}</span>
-                              <button
-                                className="qty-btn qty-history"
-                                onClick={() => handleOpenHistoryModal(item)}
-                                title="View history"
-                                style={{ marginLeft: "0.5rem", fontSize: "0.75rem" }}
-                              >
-                                📜
-                              </button>
-                            </div>
+                            <span>{item.available}</span>
                           )}
                         </td>
                         <td className="col-status">
